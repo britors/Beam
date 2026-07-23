@@ -19,7 +19,7 @@ jobs:
         run: |
           http_code=$(curl --silent --show-error --output response.txt --write-out "%{http_code}" \
             -H "Authorization: Token ${{ secrets.OBS_TOKEN_LYRA_BEAM }}" \
-            -X POST "https://api.opensuse.org/trigger/runservice?project=home:rodrigosbrito:lyra&package=beam")
+            -X POST "https://api.opensuse.org/trigger/runservice?project=home:rodrigosbrito:lyra&package=Beam")
           echo "HTTP status: $http_code"
           echo "Response body:"
           cat response.txt
