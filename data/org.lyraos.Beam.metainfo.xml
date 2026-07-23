@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.lyraos.Beam</id>
+  <name>Beam</name>
+  <name xml:lang="pt-BR">Beam</name>
+  <summary>Connect to Windows desktops and servers via RDP</summary>
+  <summary xml:lang="pt-BR">Conecte-se a áreas de trabalho e servidores Windows via RDP</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="org.lyraos">
+    <name>Lyra Enterprise Linux</name>
+  </developer>
+
+  <description>
+    <p>
+      Beam is the RDP (Remote Desktop Protocol) client of the Lyra Enterprise Linux ecosystem,
+      for connecting to Windows desktops and servers. It works on any modern Linux distribution,
+      with GTK4/libadwaita giving it native visual integration with GNOME and Lyra.
+    </p>
+    <p xml:lang="pt-BR">
+      Beam é o cliente RDP (Remote Desktop Protocol) do ecossistema Lyra Enterprise Linux,
+      para conexão com áreas de trabalho e servidores Windows. Funciona em qualquer distribuição
+      Linux moderna, com integração visual nativa ao GNOME e ao Lyra via GTK4/libadwaita.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Saved connection profiles with search</li>
+      <li>NLA/CredSSP authentication, with credentials stored in the system keyring</li>
+      <li>TOFU certificate verification, SSH-style</li>
+      <li>Full desktop sessions with bidirectional text clipboard</li>
+      <li>Fullscreen with an auto-hiding floating toolbar</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">org.lyraos.Beam.desktop</launchable>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Connection list</caption>
+      <image>https://raw.githubusercontent.com/britors/Beam/main/data/screenshots/connections.png</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://github.com/britors/Beam</url>
+  <url type="bugtracker">https://github.com/britors/Beam/issues</url>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.1.0" date="2026-07-23">
+      <description>
+        <p>Initial release.</p>
+      </description>
+    </release>
+  </releases>
+
+  <provides>
+    <binary>beam</binary>
+  </provides>
+</component>

@@ -1,0 +1,19 @@
+[package]
+name = "beam-gtk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "GTK4/libadwaita frontend for Beam"
+
+[[bin]]
+name = "beam"
+path = "src/main.rs"
+
+[dependencies]
+beam-core = { path = "../beam-core" }
+gtk = { version = "0.11", package = "gtk4", features = ["v4_12"] }
+adw = { version = "0.9", package = "libadwaita", features = ["v1_5"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "sync", "time", "macros"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
