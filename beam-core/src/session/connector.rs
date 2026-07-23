@@ -24,7 +24,7 @@ pub(crate) struct Connected {
 pub enum ConnectError {
     #[error("falha de rede: {0}")]
     Io(#[from] std::io::Error),
-    #[error("{0}")]
+    #[error("{}", .0.report())]
     Connector(#[from] ConnectorError),
     #[error("certificado do servidor recusado pelo usuário")]
     CertificateRejected,
@@ -85,7 +85,14 @@ fn build_config(profile: &ConnectionProfile, username: &str, password: &str) -> 
         performance_flags: PerformanceFlags::default(),
         license_cache: None,
         timezone_info: TimezoneInfo::default(),
-        compression_type: Some(ironrdp_pdu::rdp::client_info::CompressionType::K64),
+        // Deliberately not advertising bulk compression support (`INFO_COMPRESSION`): IronRDP's
+        // slow-path graphics update handling does not wire up MPPC/bulk decompression yet (see
+        // the TODO in `ironrdp_session::x224`), so a server that honors our request and sends
+        // compressed slow-path updates would hand us undecodable bytes. Compression is
+        // client-opt-in per MS-RDPBCGR, so simply not requesting it keeps every server on the
+        // uncompressed path, which IronRDP handles correctly. Fast-path updates are unaffected —
+        // that pipeline's bulk decompression is already wired up.
+        compression_type: None,
         enable_server_pointer: true,
         pointer_software_rendering: false,
         multitransport_flags: None,

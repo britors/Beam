@@ -48,6 +48,18 @@ logs.
 
 Essas limitações são decisões deliberadas de escopo para a v1, não bugs.
 
+## Sobre a compressão volumétrica (bulk compression) desativada
+
+O Beam **não** anuncia suporte a `INFO_COMPRESSION` (MPPC/K64) no `ClientInfo` PDU. Isso é
+proposital: o pipeline de atualizações *slow-path* do IronRDP (`ironrdp-session::x224`) ainda não
+decodifica dados volumetricamente comprimidos nesse caminho — só o *fast-path* tem essa
+descompressão ligada. Servidores que respeitam o pedido do cliente (a compressão é opt-in) nunca
+tentam comprimir dados slow-path, evitando o bug por completo; o fast-path continua usando
+MPPC/K64 normalmente e não é afetado. É uma troca deliberada: um pouco menos de eficiência de
+banda em favor de correção. Confirmado na prática — sem essa troca, uma conexão a um xrdp local
+caía de forma consistente assim que o servidor mandava a primeira atualização de tela pelo
+caminho slow-path com dados comprimidos.
+
 ## Licença
 
 GPL-3.0-or-later. Veja [`LICENSE`](LICENSE).

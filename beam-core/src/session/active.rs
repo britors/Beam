@@ -83,7 +83,7 @@ pub(crate) async fn run(
                 match active_stage.process(&mut image, action, &payload) {
                     Ok(outputs) => outputs,
                     Err(e) => {
-                        let _ = events.send(SessionEvent::Disconnected(DisconnectReason::ConnectionLost(e.to_string()))).await;
+                        let _ = events.send(SessionEvent::Disconnected(DisconnectReason::ConnectionLost(e.report().to_string()))).await;
                         return;
                     }
                 }
@@ -180,7 +180,7 @@ pub(crate) async fn run(
                         let written = match single_sequence_step_read(&mut reader, &mut connection_activation, &mut buf).await {
                             Ok(written) => written,
                             Err(e) => {
-                                let _ = events.send(SessionEvent::Disconnected(DisconnectReason::ConnectionLost(e.to_string()))).await;
+                                let _ = events.send(SessionEvent::Disconnected(DisconnectReason::ConnectionLost(e.report().to_string()))).await;
                                 return;
                             }
                         };
