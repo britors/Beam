@@ -104,7 +104,6 @@ pub async fn edit(parent: &impl IsA<gtk::Widget>, initial: Option<ConnectionProf
         .title(if is_new { "Nova conexão" } else { "Editar conexão" })
         .content_width(460)
         .content_height(560)
-        .child(&scroller)
         .build();
 
     let toolbar_view = adw::ToolbarView::new();
