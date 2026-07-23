@@ -16,9 +16,8 @@ Summary:        Cliente RDP do ecossistema Lyra Enterprise Linux
 License:        GPL-3.0-or-later
 Group:          Productivity/Networking/Remote Desktop
 URL:            https://github.com/britors/Beam
-Source0:        %{name}-%{version}.tar.zst
+Source0:        %{name}-%{version}.tar.gz
 Source1:        vendor.tar.zst
-Source2:        cargo_config
 
 BuildRequires:  cargo
 BuildRequires:  rust >= 1.85
@@ -41,9 +40,10 @@ libadwaita. As credenciais são armazenadas no Serviço de Segredos do sistema
 confiança no primeiro uso (TOFU), como o known_hosts do SSH.
 
 %prep
+# -a1 extracts Source0, then unpacks Source1 (vendor.tar.zst) on top of it; the vendor
+# tarball produced by the cargo_vendor OBS service already includes .cargo/config.toml, so
+# no manual step is needed to point cargo at the vendored crates.
 %autosetup -a1
-mkdir -p .cargo
-cp %{SOURCE2} .cargo/config.toml
 
 %build
 %{cargo_build}

@@ -1,0 +1,21 @@
+name: Publish to OBS
+
+# Release convention: tag `main` with a plain version number (e.g. `0.2.0`, no leading "v")
+# and push the tag. This workflow doesn't build anything itself — it just tells OBS "your
+# sources changed, go pull and rebuild", via the package's runservice trigger token. OBS then
+# re-runs packaging/_service (fetches the tip of `main`, vendors dependencies, rebuilds the
+# RPM) on its own infrastructure.
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  trigger-obs-rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger OBS source service + rebuild
+        run: |
+          curl --fail --silent --show-error \
+            -H "Authorization: Token ${{ secrets.OBS_TOKEN_LYRA_BEAM }}" \
+            -X POST "https://api.opensuse.org/trigger/runservice?project=home:rodrigosbrito:lyra&package=beam"
