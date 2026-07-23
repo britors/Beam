@@ -50,7 +50,8 @@ jobs:
       - name: Prepare beam.spec with the release version
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: sed "s/^Version:.*/Version:        ${VERSION}/" packaging/beam.spec > beam.spec
+        run: |
+          sed "s/^Version:.*/Version:        ${VERSION}/" packaging/beam.spec > beam.spec
 
       - name: Upload sources to OBS
         env:
