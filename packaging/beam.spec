@@ -20,6 +20,7 @@ Source0:        %{name}-%{version}.tar.gz
 Source1:        vendor.tar.zst
 
 BuildRequires:  cargo
+BuildRequires:  cargo-packaging
 BuildRequires:  rust >= 1.85
 BuildRequires:  gtk4-devel >= 4.12
 BuildRequires:  libadwaita-devel >= 1.5
@@ -27,6 +28,7 @@ BuildRequires:  pkgconfig
 BuildRequires:  desktop-file-utils
 BuildRequires:  appstream-glib
 BuildRequires:  fdupes
+BuildRequires:  zstd
 
 %description
 Beam é o cliente RDP (Remote Desktop Protocol) do ecossistema Lyra Enterprise
