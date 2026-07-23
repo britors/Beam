@@ -9,6 +9,7 @@ on:
   push:
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch: {}
 
 jobs:
   trigger-obs-rebuild:
@@ -16,6 +17,12 @@ jobs:
     steps:
       - name: Trigger OBS source service + rebuild
         run: |
-          curl --fail --silent --show-error \
+          http_code=$(curl --silent --show-error --output response.txt --write-out "%{http_code}" \
             -H "Authorization: Token ${{ secrets.OBS_TOKEN_LYRA_BEAM }}" \
-            -X POST "https://api.opensuse.org/trigger/runservice?project=home:rodrigosbrito:lyra&package=beam"
+            -X POST "https://api.opensuse.org/trigger/runservice?project=home:rodrigosbrito:lyra&package=beam")
+          echo "HTTP status: $http_code"
+          echo "Response body:"
+          cat response.txt
+          if [ "$http_code" -ge 300 ]; then
+            exit 1
+          fi
