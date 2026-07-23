@@ -1,83 +1,38 @@
 name: Publish to OBS
 
-# Release convention: tag `main` with a plain version number (e.g. `0.2.0`, no leading "v")
-# and push the tag.
+# Só avisa o OBS pra tentar rebuildar quando uma tag é criada — não é publicação de
+# verdade. Mesmo padrão já usado no Vega e no Prosa (ver .github/workflows/*.yml
+# desses repos): o serviço server-side do OBS (tar_scm/obs_scm) roda num sandbox sem
+# acesso à rede na instância pública api.opensuse.org, então esse trigger tende a
+# falhar (404 "no source service defined!" ou o clone do GitHub falhando dentro do
+# sandbox) — por isso continue-on-error e o pulo silencioso se o secret não estiver
+# configurado.
 #
-# The OBS package has no server-side source service: `cargo_vendor` (needed to vendor every
-# crates.io dependency for an offline RPM build) isn't available on the public api.opensuse.org
-# instance's service workers, only on this repo's own OBS-Rust tooling locally. So this workflow
-# does the vendoring itself and uploads the finished, ready-to-build sources (spec + source
-# tarball + vendor tarball) straight to the package via the OBS source API — OBS then just
-# builds what it's given, no source service involved.
+# O fluxo real de publicação no pacote home:rodrigosbrito:lyra/beam é manual: gerar
+# fontes + vendor.tar.zst localmente (`cargo vendor`, `git archive`) e subir via
+# `osc` a cada release — não dá pra automatizar isso puramente via token, porque o
+# sistema de tokens do OBS só cobre 5 operações fixas (runservice, branch, release,
+# rebuild, workflow), nenhuma delas "enviar um arquivo". Ver packaging/beam.spec e o
+# histórico de commits deste arquivo para os detalhes da investigação.
 on:
   push:
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
   workflow_dispatch: {}
 
-env:
-  OBS_API: https://api.opensuse.org
-  OBS_PROJECT: home:rodrigosbrito:lyra
-  OBS_PACKAGE: beam
-  OBS_USER: rodrigosbrito
-
 jobs:
-  publish:
+  trigger-obs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Determine release version
-        id: version
-        run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-
-      - name: Install zstd
-        run: sudo apt-get update && sudo apt-get install -y zstd
-
-      - name: Vendor cargo dependencies
-        run: |
-          mkdir -p .cargo
-          cargo vendor vendor > .cargo/config.toml
-          tar --zstd -cf vendor.tar.zst .cargo vendor
-
-      - name: Build source tarball
+      - name: Disparar rebuild no OBS (best-effort)
+        continue-on-error: true
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          OBS_TOKEN: ${{ secrets.OBS_TOKEN_LYRA_BEAM }}
         run: |
-          git archive --format=tar --prefix="beam-${VERSION}/" "$VERSION" \
-            | gzip > "beam-${VERSION}.tar.gz"
-
-      - name: Prepare beam.spec with the release version
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          sed "s/^Version:.*/Version:        ${VERSION}/" packaging/beam.spec > beam.spec
-
-      - name: Upload sources to OBS
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          OBS_PASSWORD: ${{ secrets.OBS_PASSWORD }}
-        run: |
-          base="${OBS_API}/source/${OBS_PROJECT}/${OBS_PACKAGE}"
-          comment="release ${VERSION} (${GITHUB_SHA:0:12})"
-
-          upload() {
-            local file="$1"
-            local encoded_comment
-            encoded_comment=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "${comment}")
-            echo "Uploading ${file}..."
-            http_code=$(curl --silent --show-error --output response.txt --write-out "%{http_code}" \
-              -u "${OBS_USER}:${OBS_PASSWORD}" \
-              -T "${file}" \
-              "${base}/$(basename "${file}")?comment=${encoded_comment}")
-            echo "  HTTP status: ${http_code}"
-            if [ "${http_code}" -ge 300 ]; then
-              echo "  Response body:"
-              cat response.txt
-              exit 1
-            fi
-          }
-
-          upload beam.spec
-          upload "beam-${VERSION}.tar.gz"
-          upload vendor.tar.zst
+          if [ -z "$OBS_TOKEN" ]; then
+            echo "OBS_TOKEN_LYRA_BEAM não configurado, pulando." >&2
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Token $OBS_TOKEN" \
+            -X POST "https://api.opensuse.org/trigger/runservice?project=home:rodrigosbrito:lyra&package=beam"
