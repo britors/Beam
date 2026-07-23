@@ -6,10 +6,11 @@
   workflow (.github/workflows/publish-obs.yml) then calls OBS's `trigger/runservice` endpoint,
   which re-runs this exact service chain against the then-current tip of `main`.
 
-  obs_scm    - clones the repo, produces beam-<version>.tar.gz (version derived from the
-               nearest reachable git tag via versionformat).
+  obs_scm    - clones the repo (checkout lands in a `Beam/` directory, matching the GitHub
+               repo name) and produces the beam.obscpio/.obsinfo OBS-native source pair;
+               version is derived from the nearest reachable git tag via versionformat.
   set_version - rewrites beam.spec's Version: field to match what obs_scm detected.
-  cargo_vendor - vendors every crates.io dependency from the fetched source tree into
+  cargo_vendor - vendors every crates.io dependency found in the `Beam/` checkout into
                vendor.tar.zst, so the RPM build has no network access.
 -->
 <services>
@@ -22,7 +23,7 @@
   </service>
   <service name="set_version" mode="manual" />
   <service name="cargo_vendor" mode="manual">
-    <param name="src">beam*.tar.gz</param>
+    <param name="src">Beam</param>
     <param name="compression">zst</param>
     <param name="update">true</param>
   </service>
