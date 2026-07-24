@@ -29,8 +29,12 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
     header.pack_start(&add_btn);
 
     let menu = gio::Menu::new();
-    menu.append(Some("Configurações"), Some("win.settings"));
-    menu.append(Some("Sobre o Beam"), Some("win.about"));
+    let settings_section = gio::Menu::new();
+    settings_section.append(Some("Configurações"), Some("win.settings"));
+    menu.append_section(None, &settings_section);
+    let about_section = gio::Menu::new();
+    about_section.append(Some("Sobre o Beam"), Some("win.about"));
+    menu.append_section(None, &about_section);
     let menu_button = gtk::MenuButton::builder()
         .icon_name("open-menu-symbolic")
         .tooltip_text("Menu principal")
@@ -287,8 +291,11 @@ fn install_window_actions(window: &adw::ApplicationWindow) {
             let dialog = adw::AboutDialog::builder()
                 .application_name("Beam")
                 .application_icon("org.lyraos.Beam")
+                .developer_name("Lyra Enterprise Linux")
                 .version(env!("CARGO_PKG_VERSION"))
                 .comments("Cliente RDP para o ecossistema Lyra Enterprise Linux.")
+                .website("https://github.com/britors/Beam")
+                .issue_url("https://github.com/britors/Beam/issues")
                 .developers(["Rodrigo Brito <rodrigo@w3ti.com.br>"])
                 .copyright("© 2026 Rodrigo Brito")
                 .license_type(gtk::License::Gpl30)
