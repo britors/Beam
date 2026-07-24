@@ -10,9 +10,9 @@
 #
 
 Name:           beam
-Version:        1.0.0
+Version:        1.0.1
 Release:        0
-Summary:        Cliente RDP do ecossistema Lyra Enterprise Linux
+Summary:        Cliente RDP do ecossistema Lyra Linux
 License:        GPL-3.0-or-later
 Group:          Productivity/Networking/Remote Desktop
 URL:            https://github.com/britors/Beam
@@ -31,8 +31,8 @@ BuildRequires:  fdupes
 BuildRequires:  zstd
 
 %description
-Beam é o cliente RDP (Remote Desktop Protocol) do ecossistema Lyra Enterprise
-Linux, para conexão com máquinas Windows (desktops e servidores). É um
+Beam é o cliente RDP (Remote Desktop Protocol) do ecossistema Lyra Linux, para
+conexão com máquinas Windows (desktops e servidores). É um
 aplicativo independente, utilizável em qualquer distribuição Linux moderna,
 com integração visual e funcional prioritária ao Lyra (GNOME/Wayland).
 

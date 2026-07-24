@@ -291,15 +291,13 @@ fn install_window_actions(window: &adw::ApplicationWindow) {
             let dialog = adw::AboutDialog::builder()
                 .application_name("Beam")
                 .application_icon("org.lyraos.Beam")
-                .developer_name("Lyra Enterprise Linux")
+                .developer_name("Lyra Linux")
                 .version(env!("CARGO_PKG_VERSION"))
-                .comments("Cliente RDP para o ecossistema Lyra Enterprise Linux.")
                 .website("https://github.com/britors/Beam")
                 .issue_url("https://github.com/britors/Beam/issues")
-                .developers(["Rodrigo Brito <rodrigo@w3ti.com.br>"])
-                .copyright("© 2026 Rodrigo Brito")
                 .license_type(gtk::License::Gpl30)
                 .build();
+            dialog.set_developers(&["Rodrigo Brito"]);
             dialog.present(Some(&window));
         }
     ));

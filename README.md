@@ -1,6 +1,6 @@
 # Beam
 
-Cliente RDP (Remote Desktop Protocol) do ecossistema **Lyra Enterprise Linux**, para conexão com
+Cliente RDP (Remote Desktop Protocol) do ecossistema **Lyra Linux**, para conexão com
 máquinas Windows (desktops e servidores). Funciona em qualquer distribuição Linux moderna, com
 integração visual e funcional prioritária com o Lyra (GNOME/Wayland).
 
