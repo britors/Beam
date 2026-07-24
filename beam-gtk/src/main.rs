@@ -3,6 +3,7 @@ mod display;
 mod input_gtk;
 mod password_dialog;
 mod profile_dialog;
+mod settings;
 mod window_manager;
 mod window_session;
 

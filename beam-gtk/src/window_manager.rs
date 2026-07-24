@@ -10,7 +10,7 @@ use gtk::gio;
 use gtk::glib;
 use gtk::glib::clone;
 
-use crate::{profile_dialog, window_session};
+use crate::{profile_dialog, settings, window_session};
 
 pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
     let window = adw::ApplicationWindow::builder()
@@ -27,7 +27,20 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
     let add_btn = gtk::Button::from_icon_name("list-add-symbolic");
     add_btn.set_tooltip_text(Some("Nova conexão"));
     header.pack_start(&add_btn);
+
+    let menu = gio::Menu::new();
+    menu.append(Some("Configurações"), Some("win.settings"));
+    menu.append(Some("Sobre o Beam"), Some("win.about"));
+    let menu_button = gtk::MenuButton::builder()
+        .icon_name("open-menu-symbolic")
+        .tooltip_text("Menu principal")
+        .menu_model(&menu)
+        .build();
+    header.pack_end(&menu_button);
+
     toolbar_view.add_top_bar(&header);
+
+    install_window_actions(&window);
 
     let search_entry = gtk::SearchEntry::builder().margin_start(12).margin_end(12).margin_top(6).build();
 
@@ -255,6 +268,35 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
     ));
 
     window.present();
+}
+
+fn install_window_actions(window: &adw::ApplicationWindow) {
+    let settings_action = gio::SimpleAction::new("settings", None);
+    settings_action.connect_activate(clone!(
+        #[weak]
+        window,
+        move |_, _| settings::show(&window)
+    ));
+    window.add_action(&settings_action);
+
+    let about_action = gio::SimpleAction::new("about", None);
+    about_action.connect_activate(clone!(
+        #[weak]
+        window,
+        move |_, _| {
+            let dialog = adw::AboutDialog::builder()
+                .application_name("Beam")
+                .application_icon("org.lyraos.Beam")
+                .version(env!("CARGO_PKG_VERSION"))
+                .comments("Cliente RDP para o ecossistema Lyra Enterprise Linux.")
+                .developers(["Rodrigo Brito <rodrigo@w3ti.com.br>"])
+                .copyright("© 2026 Rodrigo Brito")
+                .license_type(gtk::License::Gpl30)
+                .build();
+            dialog.present(Some(&window));
+        }
+    ));
+    window.add_action(&about_action);
 }
 
 fn update_stack(stack: &gtk::Stack, store: &gio::ListStore) {

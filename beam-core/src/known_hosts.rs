@@ -101,6 +101,20 @@ pub fn trust(address: &str, fingerprint: &Fingerprint) -> Result<(), ProfileErro
     save_store(&store)
 }
 
+/// List every trusted `(address, fingerprint)` entry, sorted by address.
+pub fn list() -> Result<Vec<(String, Fingerprint)>, ProfileError> {
+    let store = load_store()?;
+    Ok(store.hosts.into_iter().collect())
+}
+
+/// Remove `address` from the known-hosts store, if present; the next connection to it will
+/// require first-use confirmation again.
+pub fn remove(address: &str) -> Result<(), ProfileError> {
+    let mut store = load_store()?;
+    store.hosts.remove(address);
+    save_store(&store)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
