@@ -8,17 +8,17 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <developer id="org.lyraos">
-    <name>Lyra Linux</name>
+    <name>Lyra OS</name>
   </developer>
 
   <description>
     <p>
-      Beam is the RDP (Remote Desktop Protocol) client of the Lyra Linux ecosystem,
+      Beam is the RDP (Remote Desktop Protocol) client of the Lyra OS ecosystem,
       for connecting to Windows desktops and servers. It works on any modern Linux distribution,
       with GTK4/libadwaita giving it native visual integration with GNOME and Lyra.
     </p>
     <p xml:lang="pt-BR">
-      Beam é o cliente RDP (Remote Desktop Protocol) do ecossistema Lyra Linux,
+      Beam é o cliente RDP (Remote Desktop Protocol) do ecossistema Lyra OS,
       para conexão com áreas de trabalho e servidores Windows. Funciona em qualquer distribuição
       Linux moderna, com integração visual nativa ao GNOME e ao Lyra via GTK4/libadwaita.
     </p>

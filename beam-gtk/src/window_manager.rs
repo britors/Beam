@@ -291,7 +291,7 @@ fn install_window_actions(window: &adw::ApplicationWindow) {
             let dialog = adw::AboutDialog::builder()
                 .application_name("Beam")
                 .application_icon("org.lyraos.Beam")
-                .developer_name("Lyra Linux")
+                .developer_name("Lyra OS")
                 .version(env!("CARGO_PKG_VERSION"))
                 .website("https://github.com/britors/Beam")
                 .issue_url("https://github.com/britors/Beam/issues")
