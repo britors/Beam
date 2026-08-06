@@ -43,9 +43,12 @@ confiança no primeiro uso (TOFU), como o known_hosts do SSH.
 
 %prep
 # -a1 extracts Source0, then unpacks Source1 (vendor.tar.zst) on top of it; the vendor
-# tarball produced by the cargo_vendor OBS service already includes .cargo/config.toml, so
-# no manual step is needed to point cargo at the vendored crates.
+# tarball includes .cargo/config.toml.  Rewrite the source directory because locally
+# generated vendor tarballs can otherwise contain the absolute path of the machine that
+# generated them, which does not exist in the OBS build worker.
 %autosetup -a1
+sed -i 's|^directory = .*|directory = "vendor"|' .cargo/config.toml
+test -d vendor
 
 %build
 %{cargo_build}
