@@ -1,0 +1,187 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Beam 1.0.1\n"
+"PO-Revision-Date: 2026-08-13 00:00-0300\n"
+"Last-Translator: Lyra OS Team\n"
+"Language-Team: Lyra OS\n"
+"MIME-Version: 1.0\n"
+"Language: pt_BR\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Settings"
+msgstr "Configurações"
+
+msgid "New connection"
+msgstr "Nova conexão"
+
+msgid "About Beam"
+msgstr "Sobre o Beam"
+
+msgid "Main menu"
+msgstr "Menu principal"
+
+msgid "Connect"
+msgstr "Conectar"
+
+msgid "Connection actions"
+msgstr "Ações da conexão"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "Duplicate"
+msgstr "Duplicar"
+
+msgid "Delete"
+msgstr "Excluir"
+
+msgid "No connections"
+msgstr "Nenhuma conexão"
+
+msgid "Create your first connection to get started"
+msgstr "Crie sua primeira conexão para começar"
+
+msgid "copy"
+msgstr "cópia"
+
+msgid "Connection name"
+msgstr "Nome da conexão"
+
+msgid "Server (host)"
+msgstr "Servidor (host)"
+
+msgid "Port"
+msgstr "Porta"
+
+msgid "Username"
+msgstr "Usuário"
+
+msgid "Domain (optional)"
+msgstr "Domínio (opcional)"
+
+msgid "Resolution"
+msgstr "Resolução"
+
+msgid "Custom…"
+msgstr "Personalizada…"
+
+msgid "Custom width"
+msgstr "Largura personalizada"
+
+msgid "Custom height"
+msgstr "Altura personalizada"
+
+msgid "Color depth"
+msgstr "Profundidade de cor"
+
+msgid "16 bits"
+msgstr "16 bits"
+
+msgid "32 bits"
+msgstr "32 bits"
+
+msgid "Open in fullscreen"
+msgstr "Abrir em tela cheia"
+
+msgid "Connection"
+msgstr "Conexão"
+
+msgid "Authentication"
+msgstr "Autenticação"
+
+msgid "Display"
+msgstr "Exibição"
+
+msgid "Edit connection"
+msgstr "Editar conexão"
+
+msgid "Save"
+msgstr "Salvar"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Security"
+msgstr "Segurança"
+
+msgid "Trusted certificates"
+msgstr "Certificados confiáveis"
+
+msgid "Certificate fingerprints confirmed on previous connections (TOFU verification). Removing an entry requires confirmation again the next time you connect to that server."
+msgstr "Impressões digitais de certificados confirmadas em conexões anteriores (verificação TOFU). Remover uma entrada exige nova confirmação na próxima conexão com esse servidor."
+
+msgid "No trusted certificates yet"
+msgstr "Nenhum certificado confiável ainda"
+
+msgid "Remove trust"
+msgstr "Remover confiança"
+
+msgid "Password"
+msgstr "Senha"
+
+msgid "Save to keyring"
+msgstr "Salvar no chaveiro"
+
+msgid "Use the system Secret Service so you are not asked again"
+msgstr "Usar o Serviço de Segredos do sistema para não perguntar novamente"
+
+msgid "Authentication required"
+msgstr "Autenticação necessária"
+
+msgid "Enter the password for account “{username}” to continue."
+msgstr "Digite a senha da conta “{username}” para continuar."
+
+msgid "Verify server identity"
+msgstr "Verificar identidade do servidor"
+
+msgid "This is the first connection to <b>{address}</b>.\n\nCertificate fingerprint (SHA-256):\n<tt>{fingerprint}</tt>\n\nConfirm with the server administrator that this fingerprint is correct before continuing."
+msgstr "Esta é a primeira conexão com <b>{address}</b>.\\n\\nImpressão digital do certificado (SHA-256):\\n<tt>{fingerprint}</tt>\\n\\nConfirme com o administrador do servidor que esta impressão digital está correta antes de continuar."
+
+msgid "Trust and connect"
+msgstr "Confiar e conectar"
+
+msgid "⚠ Possible attack detected"
+msgstr "⚠ Possível ataque detectado"
+
+msgid "The certificate presented by <b>{address}</b> has changed since the last connection.\n\nPrevious fingerprint:\n<tt>{previous}</tt>\n\nCurrent fingerprint:\n<tt>{fingerprint}</tt>\n\nThis may indicate an attempt to intercept the connection (man-in-the-middle), or simply that the server certificate was renewed. Continue only if you are certain of the reason."
+msgstr "O certificado apresentado por <b>{address}</b> mudou desde a última conexão.\\n\\nImpressão digital anterior:\\n<tt>{previous}</tt>\\n\\nImpressão digital atual:\\n<tt>{fingerprint}</tt>\\n\\nIsso pode indicar uma tentativa de interceptar a conexão (man-in-the-middle), ou apenas que o certificado do servidor foi renovado. Continue somente se tiver certeza do motivo."
+
+msgid "Trust anyway"
+msgstr "Confiar mesmo assim"
+
+msgid "Fullscreen"
+msgstr "Tela cheia"
+
+msgid "Send Ctrl+Alt+Del"
+msgstr "Enviar Ctrl+Alt+Del"
+
+msgid "Disconnect"
+msgstr "Desconectar"
+
+msgid "Remote desktop"
+msgstr "Área de trabalho remota"
+
+msgid "Connection lost"
+msgstr "Conexão perdida"
+
+msgid "Reconnect"
+msgstr "Reconectar"
+
+msgid "Connection lost: {detail}"
+msgstr "Conexão perdida: {detail}"
+
+msgid "Connection failed: {detail}"
+msgstr "Falha na conexão: {detail}"
+
+msgid "Failed to send data"
+msgstr "Falha ao enviar dados"
+
+msgid "Server certificate rejected by the user"
+msgstr "Certificado do servidor recusado pelo usuário"
+
+msgid "Connection cancelled by the user"
+msgstr "Conexão cancelada pelo usuário"
+
+msgid "Network error: {detail}"
+msgstr "Erro de rede: {detail}"

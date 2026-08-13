@@ -12,6 +12,7 @@ use gtk::glib;
 use gtk::glib::clone;
 
 use crate::display::RemoteDisplay;
+use crate::i18n::gettext;
 use crate::{cert_dialog, input_gtk, password_dialog};
 
 const HEADER_REVEAL_ZONE_PX: f64 = 36.0;
@@ -27,18 +28,26 @@ pub fn open(app: &adw::Application, profile: ConnectionProfile, runtime: tokio::
 
     let header = adw::HeaderBar::new();
     header.add_css_class("osd");
-    header.set_title_widget(Some(&adw::WindowTitle::new(&profile.name, &profile.address())));
+    header.set_title_widget(Some(&adw::WindowTitle::new(
+        &profile.name,
+        &profile.address(),
+    )));
 
     let fullscreen_btn = gtk::Button::from_icon_name("view-fullscreen-symbolic");
-    fullscreen_btn.set_tooltip_text(Some("Tela cheia"));
+    fullscreen_btn.set_tooltip_text(Some(&gettext("Fullscreen")));
+    fullscreen_btn.update_property(&[gtk::accessible::Property::Label(&gettext("Fullscreen"))]);
     header.pack_start(&fullscreen_btn);
 
     let cad_btn = gtk::Button::from_icon_name("input-keyboard-symbolic");
-    cad_btn.set_tooltip_text(Some("Enviar Ctrl+Alt+Del"));
+    cad_btn.set_tooltip_text(Some(&gettext("Send Ctrl+Alt+Del")));
+    cad_btn.update_property(&[gtk::accessible::Property::Label(&gettext(
+        "Send Ctrl+Alt+Del",
+    ))]);
     header.pack_start(&cad_btn);
 
     let disconnect_btn = gtk::Button::from_icon_name("network-offline-symbolic");
-    disconnect_btn.set_tooltip_text(Some("Desconectar"));
+    disconnect_btn.set_tooltip_text(Some(&gettext("Disconnect")));
+    disconnect_btn.update_property(&[gtk::accessible::Property::Label(&gettext("Disconnect"))]);
     header.pack_end(&disconnect_btn);
 
     let header_revealer = gtk::Revealer::builder()
@@ -54,9 +63,10 @@ pub fn open(app: &adw::Application, profile: ConnectionProfile, runtime: tokio::
     display.set_vexpand(true);
     display.set_focusable(true);
     display.set_can_focus(true);
+    display.update_property(&[gtk::accessible::Property::Label(&gettext("Remote desktop"))]);
 
-    let banner = adw::Banner::new("Conexão perdida");
-    banner.set_button_label(Some("Reconectar"));
+    let banner = adw::Banner::new(&gettext("Connection lost"));
+    banner.set_button_label(Some(&gettext("Reconnect")));
     banner.set_revealed(false);
 
     let content_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
@@ -251,9 +261,16 @@ pub fn open(app: &adw::Application, profile: ConnectionProfile, runtime: tokio::
         banner,
         move |_| {
             banner.set_revealed(false);
-            let (controller, events) = session::connect(profile_for_reconnect.clone(), &runtime_for_reconnect);
+            let (controller, events) =
+                session::connect(profile_for_reconnect.clone(), &runtime_for_reconnect);
             display.set_framebuffer(controller.framebuffer().clone());
-            spawn_event_pump(events, controller, display.clone(), banner.clone(), window.clone());
+            spawn_event_pump(
+                events,
+                controller,
+                display.clone(),
+                banner.clone(),
+                window.clone(),
+            );
         }
     ));
 
@@ -300,8 +317,18 @@ fn spawn_event_pump(
                         beam_core::events::DisconnectReason::UserInitiated => {
                             window.close();
                         }
-                        other => {
-                            banner.set_title(&format!("Conexão perdida: {other}"));
+                        beam_core::events::DisconnectReason::ConnectionLost(detail) => {
+                            banner.set_title(
+                                &gettext("Connection lost: {detail}")
+                                    .replace("{detail}", &localized_detail(&detail)),
+                            );
+                            banner.set_revealed(true);
+                        }
+                        beam_core::events::DisconnectReason::ConnectionFailed(detail) => {
+                            banner.set_title(
+                                &gettext("Connection failed: {detail}")
+                                    .replace("{detail}", &localized_detail(&detail)),
+                            );
                             banner.set_revealed(true);
                         }
                     }
@@ -311,4 +338,19 @@ fn spawn_event_pump(
         }
         let _ = controller;
     });
+}
+
+/// Translate Beam-owned error text while retaining third-party/network details
+/// verbatim so diagnostics are not damaged.
+fn localized_detail(detail: &str) -> String {
+    match detail {
+        "falha ao enviar dados" => gettext("Failed to send data"),
+        "certificado do servidor recusado pelo usuário" => {
+            gettext("Server certificate rejected by the user")
+        }
+        "conexão cancelada pelo usuário" => gettext("Connection cancelled by the user"),
+        _ if detail.starts_with("falha de rede: ") => gettext("Network error: {detail}")
+            .replace("{detail}", detail.trim_start_matches("falha de rede: ")),
+        _ => detail.to_owned(),
+    }
 }

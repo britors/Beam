@@ -1,5 +1,6 @@
 mod cert_dialog;
 mod display;
+mod i18n;
 mod input_gtk;
 mod password_dialog;
 mod profile_dialog;
@@ -13,6 +14,7 @@ use gtk::prelude::*;
 const APP_ID: &str = "org.lyraos.Beam";
 
 fn main() -> glib::ExitCode {
+    i18n::init();
     let filter = tracing_subscriber::EnvFilter::builder()
         .with_env_var("BEAM_LOG")
         .with_default_directive(tracing::level_filters::LevelFilter::WARN.into())

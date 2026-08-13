@@ -1,11 +1,18 @@
 [Desktop Entry]
 Type=Application
 Name=Beam
+Name[en_US]=Beam
 Name[pt_BR]=Beam
+Name[es_ES]=Beam
+Name[zh_CN]=Beam
 GenericName=Remote Desktop Client
 GenericName[pt_BR]=Cliente de Área de Trabalho Remota
+GenericName[es_ES]=Cliente de escritorio remoto
+GenericName[zh_CN]=远程桌面客户端
 Comment=Connect to Windows desktops and servers via RDP
 Comment[pt_BR]=Conecte-se a áreas de trabalho e servidores Windows via RDP
+Comment[es_ES]=Conéctate a escritorios y servidores Windows mediante RDP
+Comment[zh_CN]=通过 RDP 连接到 Windows 桌面和服务器
 Exec=beam
 Icon=org.lyraos.Beam
 Terminal=false

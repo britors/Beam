@@ -1,0 +1,59 @@
+Settings	Configurações	Configuración	设置
+New connection	Nova conexão	Nueva conexión	新建连接
+About Beam	Sobre o Beam	Acerca de Beam	关于 Beam
+Main menu	Menu principal	Menú principal	主菜单
+Connect	Conectar	Conectar	连接
+Connection actions	Ações da conexão	Acciones de conexión	连接操作
+Edit	Editar	Editar	编辑
+Duplicate	Duplicar	Duplicar	复制
+Delete	Excluir	Eliminar	删除
+No connections	Nenhuma conexão	No hay conexiones	没有连接
+Create your first connection to get started	Crie sua primeira conexão para começar	Crea tu primera conexión para comenzar	创建第一个连接以开始使用
+copy	cópia	copia	副本
+Connection name	Nome da conexão	Nombre de la conexión	连接名称
+Server (host)	Servidor (host)	Servidor (host)	服务器（主机）
+Port	Porta	Puerto	端口
+Username	Usuário	Usuario	用户名
+Domain (optional)	Domínio (opcional)	Dominio (opcional)	域（可选）
+Resolution	Resolução	Resolución	分辨率
+Custom…	Personalizada…	Personalizada…	自定义…
+Custom width	Largura personalizada	Anchura personalizada	自定义宽度
+Custom height	Altura personalizada	Altura personalizada	自定义高度
+Color depth	Profundidade de cor	Profundidad de color	颜色深度
+16 bits	16 bits	16 bits	16 位
+32 bits	32 bits	32 bits	32 位
+Open in fullscreen	Abrir em tela cheia	Abrir en pantalla completa	全屏打开
+Connection	Conexão	Conexión	连接
+Authentication	Autenticação	Autenticación	身份验证
+Display	Exibição	Pantalla	显示
+Edit connection	Editar conexão	Editar conexión	编辑连接
+Save	Salvar	Guardar	保存
+Cancel	Cancelar	Cancelar	取消
+Security	Segurança	Seguridad	安全
+Trusted certificates	Certificados confiáveis	Certificados de confianza	受信任的证书
+Certificate fingerprints confirmed on previous connections (TOFU verification). Removing an entry requires confirmation again the next time you connect to that server.	Impressões digitais de certificados confirmadas em conexões anteriores (verificação TOFU). Remover uma entrada exige nova confirmação na próxima conexão com esse servidor.	Huellas de certificados confirmadas en conexiones anteriores (verificación TOFU). Al eliminar una entrada, se solicitará confirmación la próxima vez que te conectes a ese servidor.	先前连接中已确认的证书指纹（TOFU 验证）。删除条目后，下次连接到该服务器时需要重新确认。
+No trusted certificates yet	Nenhum certificado confiável ainda	Aún no hay certificados de confianza	尚无受信任的证书
+Remove trust	Remover confiança	Quitar confianza	取消信任
+Password	Senha	Contraseña	密码
+Save to keyring	Salvar no chaveiro	Guardar en el depósito de claves	保存到密钥环
+Use the system Secret Service so you are not asked again	Usar o Serviço de Segredos do sistema para não perguntar novamente	Usar el servicio de secretos del sistema para no volver a preguntar	使用系统密钥服务，以免再次询问
+Authentication required	Autenticação necessária	Autenticación requerida	需要身份验证
+Enter the password for account “{username}” to continue.	Digite a senha da conta “{username}” para continuar.	Introduce la contraseña de la cuenta «{username}» para continuar.	输入账户“{username}”的密码以继续。
+Verify server identity	Verificar identidade do servidor	Verificar la identidad del servidor	验证服务器身份
+This is the first connection to <b>{address}</b>.\n\nCertificate fingerprint (SHA-256):\n<tt>{fingerprint}</tt>\n\nConfirm with the server administrator that this fingerprint is correct before continuing.	Esta é a primeira conexão com <b>{address}</b>.\n\nImpressão digital do certificado (SHA-256):\n<tt>{fingerprint}</tt>\n\nConfirme com o administrador do servidor que esta impressão digital está correta antes de continuar.	Esta es la primera conexión con <b>{address}</b>.\n\nHuella del certificado (SHA-256):\n<tt>{fingerprint}</tt>\n\nConfirma con el administrador del servidor que esta huella sea correcta antes de continuar.	这是首次连接到 <b>{address}</b>。\n\n证书指纹 (SHA-256)：\n<tt>{fingerprint}</tt>\n\n继续前，请向服务器管理员确认此指纹正确。
+Trust and connect	Confiar e conectar	Confiar y conectar	信任并连接
+⚠ Possible attack detected	⚠ Possível ataque detectado	⚠ Posible ataque detectado	⚠ 检测到可能的攻击
+The certificate presented by <b>{address}</b> has changed since the last connection.\n\nPrevious fingerprint:\n<tt>{previous}</tt>\n\nCurrent fingerprint:\n<tt>{fingerprint}</tt>\n\nThis may indicate an attempt to intercept the connection (man-in-the-middle), or simply that the server certificate was renewed. Continue only if you are certain of the reason.	O certificado apresentado por <b>{address}</b> mudou desde a última conexão.\n\nImpressão digital anterior:\n<tt>{previous}</tt>\n\nImpressão digital atual:\n<tt>{fingerprint}</tt>\n\nIsso pode indicar uma tentativa de interceptar a conexão (man-in-the-middle), ou apenas que o certificado do servidor foi renovado. Continue somente se tiver certeza do motivo.	El certificado presentado por <b>{address}</b> ha cambiado desde la última conexión.\n\nHuella anterior:\n<tt>{previous}</tt>\n\nHuella actual:\n<tt>{fingerprint}</tt>\n\nEsto puede indicar un intento de interceptar la conexión (man-in-the-middle), o simplemente que se renovó el certificado del servidor. Continúa solo si conoces con certeza el motivo.	<b>{address}</b> 提供的证书自上次连接后已更改。\n\n之前的指纹：\n<tt>{previous}</tt>\n\n当前指纹：\n<tt>{fingerprint}</tt>\n\n这可能表示有人试图拦截连接（中间人攻击），也可能只是服务器证书已更新。只有在确定原因时才继续。
+Trust anyway	Confiar mesmo assim	Confiar de todos modos	仍然信任
+Fullscreen	Tela cheia	Pantalla completa	全屏
+Send Ctrl+Alt+Del	Enviar Ctrl+Alt+Del	Enviar Ctrl+Alt+Supr	发送 Ctrl+Alt+Del
+Disconnect	Desconectar	Desconectar	断开连接
+Remote desktop	Área de trabalho remota	Escritorio remoto	远程桌面
+Connection lost	Conexão perdida	Conexión perdida	连接已中断
+Reconnect	Reconectar	Volver a conectar	重新连接
+Connection lost: {detail}	Conexão perdida: {detail}	Conexión perdida: {detail}	连接已中断：{detail}
+Connection failed: {detail}	Falha na conexão: {detail}	Error de conexión: {detail}	连接失败：{detail}
+Failed to send data	Falha ao enviar dados	Error al enviar datos	发送数据失败
+Server certificate rejected by the user	Certificado do servidor recusado pelo usuário	Certificado del servidor rechazado por el usuario	用户拒绝了服务器证书
+Connection cancelled by the user	Conexão cancelada pelo usuário	Conexión cancelada por el usuario	用户取消了连接
+Network error: {detail}	Erro de rede: {detail}	Error de red: {detail}	网络错误：{detail}

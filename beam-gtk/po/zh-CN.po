@@ -1,0 +1,187 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Beam 1.0.1\n"
+"PO-Revision-Date: 2026-08-13 00:00-0300\n"
+"Last-Translator: Lyra OS Team\n"
+"Language-Team: Lyra OS\n"
+"MIME-Version: 1.0\n"
+"Language: zh_CN\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Settings"
+msgstr "设置"
+
+msgid "New connection"
+msgstr "新建连接"
+
+msgid "About Beam"
+msgstr "关于 Beam"
+
+msgid "Main menu"
+msgstr "主菜单"
+
+msgid "Connect"
+msgstr "连接"
+
+msgid "Connection actions"
+msgstr "连接操作"
+
+msgid "Edit"
+msgstr "编辑"
+
+msgid "Duplicate"
+msgstr "复制"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "No connections"
+msgstr "没有连接"
+
+msgid "Create your first connection to get started"
+msgstr "创建第一个连接以开始使用"
+
+msgid "copy"
+msgstr "副本"
+
+msgid "Connection name"
+msgstr "连接名称"
+
+msgid "Server (host)"
+msgstr "服务器（主机）"
+
+msgid "Port"
+msgstr "端口"
+
+msgid "Username"
+msgstr "用户名"
+
+msgid "Domain (optional)"
+msgstr "域（可选）"
+
+msgid "Resolution"
+msgstr "分辨率"
+
+msgid "Custom…"
+msgstr "自定义…"
+
+msgid "Custom width"
+msgstr "自定义宽度"
+
+msgid "Custom height"
+msgstr "自定义高度"
+
+msgid "Color depth"
+msgstr "颜色深度"
+
+msgid "16 bits"
+msgstr "16 位"
+
+msgid "32 bits"
+msgstr "32 位"
+
+msgid "Open in fullscreen"
+msgstr "全屏打开"
+
+msgid "Connection"
+msgstr "连接"
+
+msgid "Authentication"
+msgstr "身份验证"
+
+msgid "Display"
+msgstr "显示"
+
+msgid "Edit connection"
+msgstr "编辑连接"
+
+msgid "Save"
+msgstr "保存"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Security"
+msgstr "安全"
+
+msgid "Trusted certificates"
+msgstr "受信任的证书"
+
+msgid "Certificate fingerprints confirmed on previous connections (TOFU verification). Removing an entry requires confirmation again the next time you connect to that server."
+msgstr "先前连接中已确认的证书指纹（TOFU 验证）。删除条目后，下次连接到该服务器时需要重新确认。"
+
+msgid "No trusted certificates yet"
+msgstr "尚无受信任的证书"
+
+msgid "Remove trust"
+msgstr "取消信任"
+
+msgid "Password"
+msgstr "密码"
+
+msgid "Save to keyring"
+msgstr "保存到密钥环"
+
+msgid "Use the system Secret Service so you are not asked again"
+msgstr "使用系统密钥服务，以免再次询问"
+
+msgid "Authentication required"
+msgstr "需要身份验证"
+
+msgid "Enter the password for account “{username}” to continue."
+msgstr "输入账户“{username}”的密码以继续。"
+
+msgid "Verify server identity"
+msgstr "验证服务器身份"
+
+msgid "This is the first connection to <b>{address}</b>.\n\nCertificate fingerprint (SHA-256):\n<tt>{fingerprint}</tt>\n\nConfirm with the server administrator that this fingerprint is correct before continuing."
+msgstr "这是首次连接到 <b>{address}</b>。\\n\\n证书指纹 (SHA-256)：\\n<tt>{fingerprint}</tt>\\n\\n继续前，请向服务器管理员确认此指纹正确。"
+
+msgid "Trust and connect"
+msgstr "信任并连接"
+
+msgid "⚠ Possible attack detected"
+msgstr "⚠ 检测到可能的攻击"
+
+msgid "The certificate presented by <b>{address}</b> has changed since the last connection.\n\nPrevious fingerprint:\n<tt>{previous}</tt>\n\nCurrent fingerprint:\n<tt>{fingerprint}</tt>\n\nThis may indicate an attempt to intercept the connection (man-in-the-middle), or simply that the server certificate was renewed. Continue only if you are certain of the reason."
+msgstr "<b>{address}</b> 提供的证书自上次连接后已更改。\\n\\n之前的指纹：\\n<tt>{previous}</tt>\\n\\n当前指纹：\\n<tt>{fingerprint}</tt>\\n\\n这可能表示有人试图拦截连接（中间人攻击），也可能只是服务器证书已更新。只有在确定原因时才继续。"
+
+msgid "Trust anyway"
+msgstr "仍然信任"
+
+msgid "Fullscreen"
+msgstr "全屏"
+
+msgid "Send Ctrl+Alt+Del"
+msgstr "发送 Ctrl+Alt+Del"
+
+msgid "Disconnect"
+msgstr "断开连接"
+
+msgid "Remote desktop"
+msgstr "远程桌面"
+
+msgid "Connection lost"
+msgstr "连接已中断"
+
+msgid "Reconnect"
+msgstr "重新连接"
+
+msgid "Connection lost: {detail}"
+msgstr "连接已中断：{detail}"
+
+msgid "Connection failed: {detail}"
+msgstr "连接失败：{detail}"
+
+msgid "Failed to send data"
+msgstr "发送数据失败"
+
+msgid "Server certificate rejected by the user"
+msgstr "用户拒绝了服务器证书"
+
+msgid "Connection cancelled by the user"
+msgstr "用户取消了连接"
+
+msgid "Network error: {detail}"
+msgstr "网络错误：{detail}"

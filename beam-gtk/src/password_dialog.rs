@@ -1,14 +1,19 @@
 //! Password prompt shown when a session needs credentials that weren't found in the keyring.
 
+use crate::i18n::{format1, gettext};
 use adw::prelude::*;
 
 /// Returns `Some((password, save_to_keyring))`, or `None` if the user cancelled.
 pub async fn ask(parent: &impl IsA<gtk::Widget>, username: &str) -> Option<(String, bool)> {
-    let password_row = adw::PasswordEntryRow::builder().title("Senha").build();
+    let password_row = adw::PasswordEntryRow::builder()
+        .title(gettext("Password"))
+        .build();
 
     let save_row = adw::SwitchRow::builder()
-        .title("Salvar no chaveiro")
-        .subtitle("Usar o Serviço de Segredos do sistema para não pedir novamente")
+        .title(gettext("Save to keyring"))
+        .subtitle(gettext(
+            "Use the system Secret Service so you are not asked again",
+        ))
         .active(true)
         .build();
 
@@ -17,12 +22,16 @@ pub async fn ask(parent: &impl IsA<gtk::Widget>, username: &str) -> Option<(Stri
     group.add(&save_row);
 
     let dialog = adw::AlertDialog::builder()
-        .heading("Autenticação necessária")
-        .body(format!("Digite a senha da conta “{username}” para continuar."))
+        .heading(gettext("Authentication required"))
+        .body(format1(
+            "Enter the password for account “{username}” to continue.",
+            "username",
+            username,
+        ))
         .extra_child(&group)
         .build();
-    dialog.add_response("cancel", "Cancelar");
-    dialog.add_response("connect", "Conectar");
+    dialog.add_response("cancel", &gettext("Cancel"));
+    dialog.add_response("connect", &gettext("Connect"));
     dialog.set_default_response(Some("connect"));
     dialog.set_close_response("cancel");
     dialog.set_response_appearance("connect", adw::ResponseAppearance::Suggested);

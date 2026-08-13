@@ -27,17 +27,35 @@ pub struct Resolution {
 
 impl Resolution {
     pub const PRESETS: &'static [Resolution] = &[
-        Resolution { width: 1280, height: 720 },
-        Resolution { width: 1366, height: 768 },
-        Resolution { width: 1600, height: 900 },
-        Resolution { width: 1920, height: 1080 },
-        Resolution { width: 2560, height: 1440 },
+        Resolution {
+            width: 1280,
+            height: 720,
+        },
+        Resolution {
+            width: 1366,
+            height: 768,
+        },
+        Resolution {
+            width: 1600,
+            height: 900,
+        },
+        Resolution {
+            width: 1920,
+            height: 1080,
+        },
+        Resolution {
+            width: 2560,
+            height: 1440,
+        },
     ];
 }
 
 impl Default for Resolution {
     fn default() -> Self {
-        Resolution { width: 1366, height: 768 }
+        Resolution {
+            width: 1366,
+            height: 768,
+        }
     }
 }
 
@@ -61,7 +79,11 @@ pub struct ConnectionProfile {
 }
 
 impl ConnectionProfile {
-    pub fn new(name: impl Into<String>, host: impl Into<String>, username: impl Into<String>) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        host: impl Into<String>,
+        username: impl Into<String>,
+    ) -> Self {
         Self {
             id: Uuid::new_v4(),
             name: name.into(),
@@ -80,10 +102,10 @@ impl ConnectionProfile {
         format!("{}:{}", self.host, self.port)
     }
 
-    pub fn duplicate(&self) -> Self {
+    pub fn duplicate(&self, copy_suffix: &str) -> Self {
         let mut copy = self.clone();
         copy.id = Uuid::new_v4();
-        copy.name = format!("{} (cópia)", self.name);
+        copy.name = format!("{} ({copy_suffix})", self.name);
         copy
     }
 }
@@ -107,7 +129,8 @@ pub enum ProfileError {
 }
 
 pub fn config_dir() -> Result<PathBuf, ProfileError> {
-    let dirs = directories::ProjectDirs::from("org", "lyraos", "beam").ok_or(ProfileError::NoConfigDir)?;
+    let dirs =
+        directories::ProjectDirs::from("org", "lyraos", "beam").ok_or(ProfileError::NoConfigDir)?;
     Ok(dirs.config_dir().to_path_buf())
 }
 
@@ -156,7 +179,13 @@ mod tests {
         assert_eq!(p.color_depth, 32);
         assert!(p.fullscreen);
         assert_eq!(p.domain, None);
-        assert_eq!(p.resolution, Resolution { width: 1366, height: 768 });
+        assert_eq!(
+            p.resolution,
+            Resolution {
+                width: 1366,
+                height: 768
+            }
+        );
     }
 
     #[test]
@@ -169,9 +198,9 @@ mod tests {
     #[test]
     fn duplicate_gets_new_id_and_suffixed_name() {
         let p = ConnectionProfile::new("Servidor", "10.0.0.5", "admin");
-        let d = p.duplicate();
+        let d = p.duplicate("copy");
         assert_ne!(p.id, d.id);
-        assert_eq!(d.name, "Servidor (cópia)");
+        assert_eq!(d.name, "Servidor (copy)");
         assert_eq!(d.host, p.host);
     }
 
@@ -179,7 +208,10 @@ mod tests {
     fn profile_store_round_trips_through_toml() {
         let mut a = ConnectionProfile::new("A", "a.example.com", "alice");
         a.domain = Some("CORP".to_owned());
-        a.resolution = Resolution { width: 1920, height: 1080 };
+        a.resolution = Resolution {
+            width: 1920,
+            height: 1080,
+        };
         let b = ConnectionProfile::new("B", "b.example.com", "bob");
 
         let store = ProfileStore {

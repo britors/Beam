@@ -6,15 +6,15 @@ use std::time::Duration;
 
 use ironrdp_cliprdr::pdu::{ClipboardFormat, ClipboardFormatId};
 use ironrdp_cliprdr::CliprdrClient;
+use ironrdp_connector::connection_activation::ConnectionActivationState;
 use ironrdp_connector::ConnectionResult;
 use ironrdp_core::{IntoOwned as _, WriteBuf};
 use ironrdp_graphics::image_processing::PixelFormat;
 use ironrdp_pdu::input::fast_path::FastPathInputEvent;
-use ironrdp_connector::connection_activation::ConnectionActivationState;
 use ironrdp_session::image::DecodedImage;
 use ironrdp_session::{fast_path, ActiveStageBuilder, ActiveStageOutput, GracefulDisconnectReason};
 use ironrdp_tls::TlsStream;
-use ironrdp_tokio::{split_tokio_framed, single_sequence_step_read, Framed, FramedWrite as _};
+use ironrdp_tokio::{single_sequence_step_read, split_tokio_framed, Framed, FramedWrite as _};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
@@ -45,7 +45,11 @@ pub(crate) async fn run(
 
     let desktop_size = connection_result.desktop_size;
     let mut image = DecodedImage::new(PixelFormat::BgrA32, desktop_size.width, desktop_size.height);
-    framebuffer.replace(desktop_size.width, desktop_size.height, image.data().to_vec());
+    framebuffer.replace(
+        desktop_size.width,
+        desktop_size.height,
+        image.data().to_vec(),
+    );
 
     let _ = events
         .send(SessionEvent::Connected {
@@ -151,9 +155,11 @@ pub(crate) async fn run(
                 ActiveStageOutput::ResponseFrame(frame) => {
                     if writer.write_all(&frame).await.is_err() {
                         let _ = events
-                            .send(SessionEvent::Disconnected(DisconnectReason::ConnectionLost(
-                                "falha ao enviar dados".to_owned(),
-                            )))
+                            .send(SessionEvent::Disconnected(
+                                DisconnectReason::ConnectionLost(
+                                    "falha ao enviar dados".to_owned(),
+                                ),
+                            ))
                             .await;
                         return;
                     }
@@ -177,17 +183,32 @@ pub(crate) async fn run(
                     let mut connection_activation = activation_factory.create();
                     let mut buf = WriteBuf::new();
                     loop {
-                        let written = match single_sequence_step_read(&mut reader, &mut connection_activation, &mut buf).await {
+                        let written = match single_sequence_step_read(
+                            &mut reader,
+                            &mut connection_activation,
+                            &mut buf,
+                        )
+                        .await
+                        {
                             Ok(written) => written,
                             Err(e) => {
-                                let _ = events.send(SessionEvent::Disconnected(DisconnectReason::ConnectionLost(e.report().to_string()))).await;
+                                let _ = events
+                                    .send(SessionEvent::Disconnected(
+                                        DisconnectReason::ConnectionLost(e.report().to_string()),
+                                    ))
+                                    .await;
                                 return;
                             }
                         };
-                        if written.size().is_some() && writer.write_all(buf.filled()).await.is_err() {
-                            let _ = events.send(SessionEvent::Disconnected(DisconnectReason::ConnectionLost(
-                                "falha ao enviar dados".to_owned(),
-                            ))).await;
+                        if written.size().is_some() && writer.write_all(buf.filled()).await.is_err()
+                        {
+                            let _ = events
+                                .send(SessionEvent::Disconnected(
+                                    DisconnectReason::ConnectionLost(
+                                        "falha ao enviar dados".to_owned(),
+                                    ),
+                                ))
+                                .await;
                             return;
                         }
                         if let ConnectionActivationState::Finalized {
@@ -197,7 +218,11 @@ pub(crate) async fn run(
                             pointer_software_rendering,
                         } = connection_activation.connection_activation_state()
                         {
-                            image = DecodedImage::new(PixelFormat::BgrA32, desktop_size.width, desktop_size.height);
+                            image = DecodedImage::new(
+                                PixelFormat::BgrA32,
+                                desktop_size.width,
+                                desktop_size.height,
+                            );
                             active_stage.set_fastpath_processor(
                                 fast_path::ProcessorBuilder {
                                     io_channel_id: connection_activation.io_channel_id(),
@@ -211,7 +236,11 @@ pub(crate) async fn run(
                             );
                             active_stage.set_share_id(share_id);
                             active_stage.set_enable_server_pointer(enable_server_pointer);
-                            framebuffer.replace(desktop_size.width, desktop_size.height, image.data().to_vec());
+                            framebuffer.replace(
+                                desktop_size.width,
+                                desktop_size.height,
+                                image.data().to_vec(),
+                            );
                             let _ = events
                                 .send(SessionEvent::Connected {
                                     width: desktop_size.width,
@@ -240,14 +269,20 @@ fn process_input(
     image: &mut DecodedImage,
     events: &[FastPathInputEvent],
 ) -> Vec<ActiveStageOutput> {
-    active_stage.process_fastpath_input(image, events).unwrap_or_default()
+    active_stage
+        .process_fastpath_input(image, events)
+        .unwrap_or_default()
 }
 
 /// Runs `f` against the active CLIPRDR processor, if the channel is available, flattening any
 /// PDU-encoding error into an empty output (logged, not fatal to the session).
 fn with_cliprdr(
     active_stage: &mut ironrdp_session::ActiveStage,
-    f: impl FnOnce(&mut CliprdrClient) -> ironrdp_pdu::PduResult<ironrdp_cliprdr::CliprdrSvcMessages<ironrdp_cliprdr::Client>>,
+    f: impl FnOnce(
+        &mut CliprdrClient,
+    ) -> ironrdp_pdu::PduResult<
+        ironrdp_cliprdr::CliprdrSvcMessages<ironrdp_cliprdr::Client>,
+    >,
 ) -> Vec<ActiveStageOutput> {
     let Some(cliprdr) = active_stage.get_svc_processor_mut::<CliprdrClient>() else {
         return Vec::new();

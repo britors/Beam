@@ -5,28 +5,25 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use crate::i18n::gettext;
 use adw::prelude::*;
 use gtk::glib;
 
 pub fn show(parent: &adw::ApplicationWindow) {
     let dialog = adw::PreferencesDialog::builder()
-        .title("Configurações")
+        .title(gettext("Settings"))
         .content_width(520)
         .content_height(480)
         .build();
 
     let page = adw::PreferencesPage::builder()
-        .title("Segurança")
+        .title(gettext("Security"))
         .icon_name("security-high-symbolic")
         .build();
 
     let group = adw::PreferencesGroup::builder()
-        .title("Certificados confiados")
-        .description(
-            "Impressões digitais de certificado confirmadas em conexões anteriores \
-             (verificação TOFU). Remover uma entrada faz com que a próxima conexão a esse \
-             servidor exija nova confirmação.",
-        )
+        .title(gettext("Trusted certificates"))
+        .description(gettext("Certificate fingerprints confirmed on previous connections (TOFU verification). Removing an entry requires confirmation again the next time you connect to that server."))
         .build();
 
     let rows: Rc<RefCell<Vec<gtk::Widget>>> = Rc::new(RefCell::new(Vec::new()));
@@ -45,7 +42,7 @@ fn refresh_known_hosts(group: &adw::PreferencesGroup, rows: &Rc<RefCell<Vec<gtk:
     let hosts = beam_core::known_hosts::list().unwrap_or_default();
     if hosts.is_empty() {
         let row = adw::ActionRow::builder()
-            .title("Nenhum certificado confiado ainda")
+            .title(gettext("No trusted certificates yet"))
             .sensitive(false)
             .build();
         group.add(&row);
@@ -62,8 +59,9 @@ fn refresh_known_hosts(group: &adw::PreferencesGroup, rows: &Rc<RefCell<Vec<gtk:
             .icon_name("user-trash-symbolic")
             .valign(gtk::Align::Center)
             .css_classes(["flat"])
-            .tooltip_text("Remover confiança")
+            .tooltip_text(gettext("Remove trust"))
             .build();
+        remove_btn.update_property(&[gtk::accessible::Property::Label(&gettext("Remove trust"))]);
         row.add_suffix(&remove_btn);
 
         let group_for_remove = group.clone();

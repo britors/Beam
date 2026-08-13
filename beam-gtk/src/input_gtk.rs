@@ -44,7 +44,9 @@ const EXTENDED_KEYS: &[(u32, u8, bool)] = &[
 fn keycode_to_scancode(gdk_keycode: u32) -> Option<(u8, bool)> {
     let evdev = gdk_keycode.checked_sub(8)?;
 
-    if let Some(&(_, scancode, extended)) = EXTENDED_KEYS.iter().find(|&&(code, _, _)| code == evdev) {
+    if let Some(&(_, scancode, extended)) =
+        EXTENDED_KEYS.iter().find(|&&(code, _, _)| code == evdev)
+    {
         return Some((scancode, extended));
     }
 
@@ -88,7 +90,10 @@ where
         let click = gtk::GestureClick::new();
         click.set_button(0);
         click.connect_pressed(move |gesture, _n_press, x, y| {
-            if let (Some(button), Some((rx, ry))) = (pointer_button(gesture.current_button()), to_remote_press(x, y)) {
+            if let (Some(button), Some((rx, ry))) = (
+                pointer_button(gesture.current_button()),
+                to_remote_press(x, y),
+            ) {
                 send_press(InputEvent::MouseButton {
                     x: rx,
                     y: ry,
@@ -100,7 +105,10 @@ where
         let to_remote_release = to_remote.clone();
         let send_release = send.clone();
         click.connect_released(move |gesture, _n_press, x, y| {
-            if let (Some(button), Some((rx, ry))) = (pointer_button(gesture.current_button()), to_remote_release(x, y)) {
+            if let (Some(button), Some((rx, ry))) = (
+                pointer_button(gesture.current_button()),
+                to_remote_release(x, y),
+            ) {
                 send_release(InputEvent::MouseButton {
                     x: rx,
                     y: ry,
@@ -127,7 +135,11 @@ where
             if steps != 0 {
                 let (x, y) = last_pos.get();
                 if let Some((rx, ry)) = to_remote(x, y) {
-                    send(InputEvent::MouseWheel { x: rx, y: ry, steps });
+                    send(InputEvent::MouseWheel {
+                        x: rx,
+                        y: ry,
+                        steps,
+                    });
                 }
             }
             glib::Propagation::Stop

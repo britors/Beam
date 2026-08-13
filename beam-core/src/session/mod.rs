@@ -5,8 +5,8 @@
 
 mod active;
 mod clipboard;
-pub mod framebuffer;
 mod connector;
+pub mod framebuffer;
 mod input;
 
 use std::sync::Arc;
@@ -14,9 +14,9 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use tracing::warn;
 
+pub use self::connector::ConnectError;
 pub use self::framebuffer::Framebuffer;
 pub use self::input::{InputEvent, PointerButton};
-pub use self::connector::ConnectError;
 
 use self::clipboard::ClipboardBridge;
 use crate::events::{CredentialsPromptRequest, DisconnectReason, SessionEvent};
@@ -94,16 +94,29 @@ impl SessionController {
 /// [`SessionEvents::next_event`] for [`SessionEvent::Connected`], [`SessionEvent::CertPrompt`],
 /// [`SessionEvent::CredsNeeded`], and eventually [`SessionEvent::Disconnected`] if the attempt
 /// fails.
-pub fn connect(profile: ConnectionProfile, runtime: &tokio::runtime::Handle) -> (SessionController, SessionEvents) {
+pub fn connect(
+    profile: ConnectionProfile,
+    runtime: &tokio::runtime::Handle,
+) -> (SessionController, SessionEvents) {
     let (events_tx, events_rx) = mpsc::channel(64);
     let (commands_tx, commands_rx) = mpsc::unbounded_channel();
-    let framebuffer = Arc::new(Framebuffer::new(profile.resolution.width, profile.resolution.height));
+    let framebuffer = Arc::new(Framebuffer::new(
+        profile.resolution.width,
+        profile.resolution.height,
+    ));
     let clipboard_bridge = Arc::new(ClipboardBridge::default());
 
     let task_framebuffer = framebuffer.clone();
     let task_clipboard_bridge = clipboard_bridge.clone();
     runtime.spawn(async move {
-        run_session(profile, events_tx, commands_rx, task_framebuffer, task_clipboard_bridge).await;
+        run_session(
+            profile,
+            events_tx,
+            commands_rx,
+            task_framebuffer,
+            task_clipboard_bridge,
+        )
+        .await;
     });
 
     (
@@ -156,9 +169,9 @@ async fn run_session(
                 }
                 _ => {
                     let _ = events
-                        .send(SessionEvent::Disconnected(DisconnectReason::ConnectionFailed(
-                            "senha não fornecida".to_owned(),
-                        )))
+                        .send(SessionEvent::Disconnected(
+                            DisconnectReason::ConnectionFailed("senha não fornecida".to_owned()),
+                        ))
                         .await;
                     return;
                 }
@@ -184,7 +197,9 @@ async fn run_session(
         }
         Err(e) => {
             let _ = events
-                .send(SessionEvent::Disconnected(DisconnectReason::ConnectionFailed(e.to_string())))
+                .send(SessionEvent::Disconnected(
+                    DisconnectReason::ConnectionFailed(e.to_string()),
+                ))
                 .await;
         }
     }

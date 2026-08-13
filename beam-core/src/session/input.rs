@@ -54,7 +54,12 @@ pub(crate) fn to_fastpath(event: InputEvent) -> SmallVec<[FastPathInputEvent; 2]
                 y_position: y,
             }));
         }
-        InputEvent::MouseButton { x, y, button, pressed } => {
+        InputEvent::MouseButton {
+            x,
+            y,
+            button,
+            pressed,
+        } => {
             let button_flag = match button {
                 PointerButton::Left => PointerFlags::LEFT_BUTTON,
                 PointerButton::Right => PointerFlags::RIGHT_BUTTON,
@@ -106,15 +111,30 @@ pub(crate) fn ctrl_alt_del_sequence() -> SmallVec<[FastPathInputEvent; 6]> {
     const DELETE: u8 = 0x53;
 
     let mut out = SmallVec::new();
-    out.push(FastPathInputEvent::KeyboardEvent(KeyboardFlags::empty(), LEFT_CTRL));
-    out.push(FastPathInputEvent::KeyboardEvent(KeyboardFlags::empty(), LEFT_ALT));
-    out.push(FastPathInputEvent::KeyboardEvent(KeyboardFlags::EXTENDED, DELETE));
+    out.push(FastPathInputEvent::KeyboardEvent(
+        KeyboardFlags::empty(),
+        LEFT_CTRL,
+    ));
+    out.push(FastPathInputEvent::KeyboardEvent(
+        KeyboardFlags::empty(),
+        LEFT_ALT,
+    ));
+    out.push(FastPathInputEvent::KeyboardEvent(
+        KeyboardFlags::EXTENDED,
+        DELETE,
+    ));
     out.push(FastPathInputEvent::KeyboardEvent(
         KeyboardFlags::EXTENDED | KeyboardFlags::RELEASE,
         DELETE,
     ));
-    out.push(FastPathInputEvent::KeyboardEvent(KeyboardFlags::RELEASE, LEFT_ALT));
-    out.push(FastPathInputEvent::KeyboardEvent(KeyboardFlags::RELEASE, LEFT_CTRL));
+    out.push(FastPathInputEvent::KeyboardEvent(
+        KeyboardFlags::RELEASE,
+        LEFT_ALT,
+    ));
+    out.push(FastPathInputEvent::KeyboardEvent(
+        KeyboardFlags::RELEASE,
+        LEFT_CTRL,
+    ));
     out
 }
 
@@ -207,7 +227,10 @@ mod tests {
         let events = ctrl_alt_del_sequence();
         assert_eq!(events.len(), 6);
 
-        let expect_key = |event: &FastPathInputEvent, scancode: u8, released: bool, extended: bool| match event {
+        let expect_key = |event: &FastPathInputEvent,
+                          scancode: u8,
+                          released: bool,
+                          extended: bool| match event {
             FastPathInputEvent::KeyboardEvent(flags, code) => {
                 assert_eq!(*code, scancode);
                 assert_eq!(flags.contains(KeyboardFlags::RELEASE), released);

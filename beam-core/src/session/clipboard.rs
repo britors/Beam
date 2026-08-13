@@ -11,8 +11,8 @@ use std::sync::Mutex;
 
 use ironrdp_cliprdr::backend::CliprdrBackend;
 use ironrdp_cliprdr::pdu::{
-    ClipboardFormat, ClipboardFormatId, ClipboardGeneralCapabilityFlags, FileContentsRequest, FileContentsResponse,
-    FormatDataRequest, FormatDataResponse, LockDataId,
+    ClipboardFormat, ClipboardFormatId, ClipboardGeneralCapabilityFlags, FileContentsRequest,
+    FileContentsResponse, FormatDataRequest, FormatDataResponse, LockDataId,
 };
 use tokio::sync::mpsc;
 
@@ -25,11 +25,17 @@ pub struct ClipboardBridge {
 
 impl ClipboardBridge {
     pub fn set_local_text(&self, text: String) {
-        *self.local_text.lock().expect("clipboard bridge mutex poisoned") = Some(text);
+        *self
+            .local_text
+            .lock()
+            .expect("clipboard bridge mutex poisoned") = Some(text);
     }
 
     fn get_local_text(&self) -> Option<String> {
-        self.local_text.lock().expect("clipboard bridge mutex poisoned").clone()
+        self.local_text
+            .lock()
+            .expect("clipboard bridge mutex poisoned")
+            .clone()
     }
 }
 
@@ -57,7 +63,10 @@ fn text_to_cf_unicodetext(text: &str) -> Vec<u8> {
 }
 
 fn cf_unicodetext_to_text(data: &[u8]) -> String {
-    let units: Vec<u16> = data.chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect();
+    let units: Vec<u16> = data
+        .chunks_exact(2)
+        .map(|c| u16::from_le_bytes([c[0], c[1]]))
+        .collect();
     let end = units.iter().position(|&u| u == 0).unwrap_or(units.len());
     String::from_utf16_lossy(&units[..end]).replace("\r\n", "\n")
 }
@@ -71,7 +80,8 @@ ironrdp_core::impl_as_any!(BeamClipboardBackend);
 
 impl std::fmt::Debug for BeamClipboardBackend {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BeamClipboardBackend").finish_non_exhaustive()
+        f.debug_struct("BeamClipboardBackend")
+            .finish_non_exhaustive()
     }
 }
 
@@ -92,12 +102,16 @@ impl CliprdrBackend for BeamClipboardBackend {
         }
     }
 
-    fn on_process_negotiated_capabilities(&mut self, _capabilities: ClipboardGeneralCapabilityFlags) {}
+    fn on_process_negotiated_capabilities(
+        &mut self,
+        _capabilities: ClipboardGeneralCapabilityFlags,
+    ) {
+    }
 
     fn on_remote_copy(&mut self, available_formats: &[ClipboardFormat]) {
-        let has_text = available_formats
-            .iter()
-            .any(|f| f.id() == ClipboardFormatId::CF_UNICODETEXT || f.id() == ClipboardFormatId::CF_TEXT);
+        let has_text = available_formats.iter().any(|f| {
+            f.id() == ClipboardFormatId::CF_UNICODETEXT || f.id() == ClipboardFormatId::CF_TEXT
+        });
         if has_text {
             let _ = self.tx.send(ClipboardBackendMsg::InitiatePaste);
         }
@@ -105,7 +119,11 @@ impl CliprdrBackend for BeamClipboardBackend {
 
     fn on_format_data_request(&mut self, _request: FormatDataRequest) {
         let text = self.bridge.get_local_text().unwrap_or_default();
-        let _ = self.tx.send(ClipboardBackendMsg::SendFormatData(text_to_cf_unicodetext(&text)));
+        let _ = self
+            .tx
+            .send(ClipboardBackendMsg::SendFormatData(text_to_cf_unicodetext(
+                &text,
+            )));
     }
 
     fn on_format_data_response(&mut self, response: FormatDataResponse<'_>) {

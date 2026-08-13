@@ -10,6 +10,7 @@ use gtk::gio;
 use gtk::glib;
 use gtk::glib::clone;
 
+use crate::i18n::gettext;
 use crate::{profile_dialog, settings, window_session};
 
 pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
@@ -20,33 +21,40 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
         .default_height(640)
         .build();
 
-    let profiles: Rc<RefCell<Vec<ConnectionProfile>>> = Rc::new(RefCell::new(profile::load_profiles().unwrap_or_default()));
+    let profiles: Rc<RefCell<Vec<ConnectionProfile>>> =
+        Rc::new(RefCell::new(profile::load_profiles().unwrap_or_default()));
 
     let toolbar_view = adw::ToolbarView::new();
     let header = adw::HeaderBar::new();
     let add_btn = gtk::Button::from_icon_name("list-add-symbolic");
-    add_btn.set_tooltip_text(Some("Nova conexão"));
+    add_btn.set_tooltip_text(Some(&gettext("New connection")));
+    add_btn.update_property(&[gtk::accessible::Property::Label(&gettext("New connection"))]);
     header.pack_start(&add_btn);
 
     let menu = gio::Menu::new();
     let settings_section = gio::Menu::new();
-    settings_section.append(Some("Configurações"), Some("win.settings"));
+    settings_section.append(Some(&gettext("Settings")), Some("win.settings"));
     menu.append_section(None, &settings_section);
     let about_section = gio::Menu::new();
-    about_section.append(Some("Sobre o Beam"), Some("win.about"));
+    about_section.append(Some(&gettext("About Beam")), Some("win.about"));
     menu.append_section(None, &about_section);
     let menu_button = gtk::MenuButton::builder()
         .icon_name("open-menu-symbolic")
-        .tooltip_text("Menu principal")
+        .tooltip_text(gettext("Main menu"))
         .menu_model(&menu)
         .build();
+    menu_button.update_property(&[gtk::accessible::Property::Label(&gettext("Main menu"))]);
     header.pack_end(&menu_button);
 
     toolbar_view.add_top_bar(&header);
 
     install_window_actions(&window);
 
-    let search_entry = gtk::SearchEntry::builder().margin_start(12).margin_end(12).margin_top(6).build();
+    let search_entry = gtk::SearchEntry::builder()
+        .margin_start(12)
+        .margin_end(12)
+        .margin_top(6)
+        .build();
 
     let list_store = gio::ListStore::new::<ConnectionProfileObject>();
     for p in profiles.borrow().iter() {
@@ -63,7 +71,9 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
             if query.is_empty() {
                 return true;
             }
-            let obj = item.downcast_ref::<ConnectionProfileObject>().expect("ConnectionProfileObject");
+            let obj = item
+                .downcast_ref::<ConnectionProfileObject>()
+                .expect("ConnectionProfileObject");
             let p = obj.profile();
             p.name.to_lowercase().contains(&query) || p.host.to_lowercase().contains(&query)
         }
@@ -77,6 +87,8 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
     factory.connect_setup(|_, list_item| {
         let row = adw::ActionRow::new();
         let connect_icon = gtk::Image::from_icon_name("network-server-symbolic");
+        connect_icon.set_tooltip_text(Some(&gettext("Connect")));
+        connect_icon.update_property(&[gtk::accessible::Property::Label(&gettext("Connect"))]);
         row.add_prefix(&connect_icon);
 
         let menu_btn = gtk::MenuButton::builder()
@@ -84,6 +96,10 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
             .valign(gtk::Align::Center)
             .css_classes(["flat"])
             .build();
+        menu_btn.set_tooltip_text(Some(&gettext("Connection actions")));
+        menu_btn.update_property(&[gtk::accessible::Property::Label(&gettext(
+            "Connection actions",
+        ))]);
         row.add_suffix(&menu_btn);
         row.set_activatable(true);
 
@@ -104,11 +120,21 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
         runtime,
         move |_, list_item| {
             let list_item = list_item.downcast_ref::<gtk::ListItem>().expect("ListItem");
-            let obj = list_item.item().and_downcast::<ConnectionProfileObject>().expect("item");
-            let row = list_item.child().and_downcast::<adw::ActionRow>().expect("row");
+            let obj = list_item
+                .item()
+                .and_downcast::<ConnectionProfileObject>()
+                .expect("item");
+            let row = list_item
+                .child()
+                .and_downcast::<adw::ActionRow>()
+                .expect("row");
             let p = obj.profile();
             row.set_title(&glib::markup_escape_text(&p.name));
-            row.set_subtitle(&glib::markup_escape_text(&format!("{}@{}", p.username, p.address())));
+            row.set_subtitle(&glib::markup_escape_text(&format!(
+                "{}@{}",
+                p.username,
+                p.address()
+            )));
 
             let menu_btn = row
                 .last_child()
@@ -116,9 +142,9 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
                 .and_downcast::<gtk::MenuButton>();
             if let Some(menu_btn) = menu_btn {
                 let menu = gio::Menu::new();
-                menu.append(Some("Editar"), Some("row.edit"));
-                menu.append(Some("Duplicar"), Some("row.duplicate"));
-                menu.append(Some("Excluir"), Some("row.delete"));
+                menu.append(Some(&gettext("Edit")), Some("row.edit"));
+                menu.append(Some(&gettext("Duplicate")), Some("row.duplicate"));
+                menu.append(Some(&gettext("Delete")), Some("row.delete"));
                 let popover = gtk::PopoverMenu::from_model(Some(&menu));
                 menu_btn.set_popover(Some(&popover));
 
@@ -139,7 +165,9 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
                         let window = window.clone();
                         let current = obj.profile();
                         glib::MainContext::default().spawn_local(async move {
-                            if let Some(updated) = profile_dialog::edit(&window, Some(current)).await {
+                            if let Some(updated) =
+                                profile_dialog::edit(&window, Some(current)).await
+                            {
                                 let mut list = profiles.borrow_mut();
                                 if let Some(slot) = list.iter_mut().find(|p| p.id == updated.id) {
                                     *slot = updated;
@@ -161,7 +189,7 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
                     obj,
                     move |_, _| {
                         let mut list = profiles.borrow_mut();
-                        list.push(obj.profile().duplicate());
+                        list.push(obj.profile().duplicate(&gettext("copy")));
                         let _ = profile::save_profiles(&list);
                         drop(list);
                         refresh_store(&profiles, &list_store);
@@ -208,7 +236,11 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
                 obj,
                 move |_| {
                     window_session::open(
-                        window.application().and_downcast::<adw::Application>().as_ref().expect("app"),
+                        window
+                            .application()
+                            .and_downcast::<adw::Application>()
+                            .as_ref()
+                            .expect("app"),
                         obj.profile(),
                         runtime.clone(),
                     );
@@ -220,11 +252,14 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
     let list_view = gtk::ListView::new(Some(selection_model), Some(factory));
     list_view.set_single_click_activate(true);
 
-    let scroller = gtk::ScrolledWindow::builder().child(&list_view).vexpand(true).build();
+    let scroller = gtk::ScrolledWindow::builder()
+        .child(&list_view)
+        .vexpand(true)
+        .build();
 
     let status_page = adw::StatusPage::builder()
-        .title("Nenhuma conexão")
-        .description("Crie a primeira conexão para começar")
+        .title(gettext("No connections"))
+        .description(gettext("Create your first connection to get started"))
         .icon_name("network-server-symbolic")
         .vexpand(true)
         .build();
@@ -305,7 +340,11 @@ fn install_window_actions(window: &adw::ApplicationWindow) {
 }
 
 fn update_stack(stack: &gtk::Stack, store: &gio::ListStore) {
-    stack.set_visible_child_name(if store.n_items() == 0 { "empty" } else { "list" });
+    stack.set_visible_child_name(if store.n_items() == 0 {
+        "empty"
+    } else {
+        "list"
+    });
 }
 
 fn refresh_store(profiles: &Rc<RefCell<Vec<ConnectionProfile>>>, store: &gio::ListStore) {
@@ -327,7 +366,11 @@ impl ConnectionProfileObject {
     }
 
     pub fn profile(&self) -> ConnectionProfile {
-        self.imp().profile.borrow().clone().expect("profile set at construction")
+        self.imp()
+            .profile
+            .borrow()
+            .clone()
+            .expect("profile set at construction")
     }
 }
 

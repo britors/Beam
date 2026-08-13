@@ -1,0 +1,187 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Beam 1.0.1\n"
+"PO-Revision-Date: 2026-08-13 00:00-0300\n"
+"Last-Translator: Lyra OS Team\n"
+"Language-Team: Lyra OS\n"
+"MIME-Version: 1.0\n"
+"Language: en_US\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Settings"
+msgstr "Settings"
+
+msgid "New connection"
+msgstr "New connection"
+
+msgid "About Beam"
+msgstr "About Beam"
+
+msgid "Main menu"
+msgstr "Main menu"
+
+msgid "Connect"
+msgstr "Connect"
+
+msgid "Connection actions"
+msgstr "Connection actions"
+
+msgid "Edit"
+msgstr "Edit"
+
+msgid "Duplicate"
+msgstr "Duplicate"
+
+msgid "Delete"
+msgstr "Delete"
+
+msgid "No connections"
+msgstr "No connections"
+
+msgid "Create your first connection to get started"
+msgstr "Create your first connection to get started"
+
+msgid "copy"
+msgstr "copy"
+
+msgid "Connection name"
+msgstr "Connection name"
+
+msgid "Server (host)"
+msgstr "Server (host)"
+
+msgid "Port"
+msgstr "Port"
+
+msgid "Username"
+msgstr "Username"
+
+msgid "Domain (optional)"
+msgstr "Domain (optional)"
+
+msgid "Resolution"
+msgstr "Resolution"
+
+msgid "Custom…"
+msgstr "Custom…"
+
+msgid "Custom width"
+msgstr "Custom width"
+
+msgid "Custom height"
+msgstr "Custom height"
+
+msgid "Color depth"
+msgstr "Color depth"
+
+msgid "16 bits"
+msgstr "16 bits"
+
+msgid "32 bits"
+msgstr "32 bits"
+
+msgid "Open in fullscreen"
+msgstr "Open in fullscreen"
+
+msgid "Connection"
+msgstr "Connection"
+
+msgid "Authentication"
+msgstr "Authentication"
+
+msgid "Display"
+msgstr "Display"
+
+msgid "Edit connection"
+msgstr "Edit connection"
+
+msgid "Save"
+msgstr "Save"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Security"
+msgstr "Security"
+
+msgid "Trusted certificates"
+msgstr "Trusted certificates"
+
+msgid "Certificate fingerprints confirmed on previous connections (TOFU verification). Removing an entry requires confirmation again the next time you connect to that server."
+msgstr "Certificate fingerprints confirmed on previous connections (TOFU verification). Removing an entry requires confirmation again the next time you connect to that server."
+
+msgid "No trusted certificates yet"
+msgstr "No trusted certificates yet"
+
+msgid "Remove trust"
+msgstr "Remove trust"
+
+msgid "Password"
+msgstr "Password"
+
+msgid "Save to keyring"
+msgstr "Save to keyring"
+
+msgid "Use the system Secret Service so you are not asked again"
+msgstr "Use the system Secret Service so you are not asked again"
+
+msgid "Authentication required"
+msgstr "Authentication required"
+
+msgid "Enter the password for account “{username}” to continue."
+msgstr "Enter the password for account “{username}” to continue."
+
+msgid "Verify server identity"
+msgstr "Verify server identity"
+
+msgid "This is the first connection to <b>{address}</b>.\n\nCertificate fingerprint (SHA-256):\n<tt>{fingerprint}</tt>\n\nConfirm with the server administrator that this fingerprint is correct before continuing."
+msgstr "This is the first connection to <b>{address}</b>.\n\nCertificate fingerprint (SHA-256):\n<tt>{fingerprint}</tt>\n\nConfirm with the server administrator that this fingerprint is correct before continuing."
+
+msgid "Trust and connect"
+msgstr "Trust and connect"
+
+msgid "⚠ Possible attack detected"
+msgstr "⚠ Possible attack detected"
+
+msgid "The certificate presented by <b>{address}</b> has changed since the last connection.\n\nPrevious fingerprint:\n<tt>{previous}</tt>\n\nCurrent fingerprint:\n<tt>{fingerprint}</tt>\n\nThis may indicate an attempt to intercept the connection (man-in-the-middle), or simply that the server certificate was renewed. Continue only if you are certain of the reason."
+msgstr "The certificate presented by <b>{address}</b> has changed since the last connection.\n\nPrevious fingerprint:\n<tt>{previous}</tt>\n\nCurrent fingerprint:\n<tt>{fingerprint}</tt>\n\nThis may indicate an attempt to intercept the connection (man-in-the-middle), or simply that the server certificate was renewed. Continue only if you are certain of the reason."
+
+msgid "Trust anyway"
+msgstr "Trust anyway"
+
+msgid "Fullscreen"
+msgstr "Fullscreen"
+
+msgid "Send Ctrl+Alt+Del"
+msgstr "Send Ctrl+Alt+Del"
+
+msgid "Disconnect"
+msgstr "Disconnect"
+
+msgid "Remote desktop"
+msgstr "Remote desktop"
+
+msgid "Connection lost"
+msgstr "Connection lost"
+
+msgid "Reconnect"
+msgstr "Reconnect"
+
+msgid "Connection lost: {detail}"
+msgstr "Connection lost: {detail}"
+
+msgid "Connection failed: {detail}"
+msgstr "Connection failed: {detail}"
+
+msgid "Failed to send data"
+msgstr "Failed to send data"
+
+msgid "Server certificate rejected by the user"
+msgstr "Server certificate rejected by the user"
+
+msgid "Connection cancelled by the user"
+msgstr "Connection cancelled by the user"
+
+msgid "Network error: {detail}"
+msgstr "Network error: {detail}"

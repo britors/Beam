@@ -125,7 +125,10 @@ mod tests {
         // SHA-256("hello world") = b94d27b9934d3e08a52e52d7da7dacefbd...
         assert!(fp.as_str().starts_with("b9:4d:27:b9"));
         assert_eq!(fp.as_str().len(), 32 * 3 - 1); // 32 bytes -> "xx:" * 31 + "xx"
-        assert!(fp.as_str().chars().all(|c| c.is_ascii_hexdigit() || c == ':'));
+        assert!(fp
+            .as_str()
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() || c == ':'));
     }
 
     #[test]
@@ -146,6 +149,9 @@ mod tests {
         );
         let text = toml::to_string_pretty(&store).expect("serialize");
         let parsed: KnownHostsStore = toml::from_str(&text).expect("deserialize");
-        assert_eq!(parsed.hosts.get("10.0.0.5:3389"), store.hosts.get("10.0.0.5:3389"));
+        assert_eq!(
+            parsed.hosts.get("10.0.0.5:3389"),
+            store.hosts.get("10.0.0.5:3389")
+        );
     }
 }

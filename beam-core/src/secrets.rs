@@ -42,7 +42,12 @@ impl SecretKey<'_> {
 pub async fn store_password(key: &SecretKey<'_>, password: &str) -> Result<(), SecretError> {
     let keyring = oo7::Keyring::new().await?;
     keyring
-        .create_item(&key.label(), &key.attributes(), Secret::text(password), true)
+        .create_item(
+            &key.label(),
+            &key.attributes(),
+            Secret::text(password),
+            true,
+        )
         .await?;
     Ok(())
 }
@@ -55,7 +60,9 @@ pub async fn lookup_password(key: &SecretKey<'_>) -> Result<Option<String>, Secr
         return Ok(None);
     };
     let secret = item.secret().await?;
-    Ok(Some(String::from_utf8_lossy(secret.as_bytes()).into_owned()))
+    Ok(Some(
+        String::from_utf8_lossy(secret.as_bytes()).into_owned(),
+    ))
 }
 
 /// Remove the stored password for `key`, if any. Used when a profile is deleted.

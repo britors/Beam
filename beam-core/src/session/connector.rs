@@ -2,7 +2,9 @@
 //! RDP finalization. Produces a ready-to-run active session.
 
 use ironrdp_connector::sspi::generator::NetworkRequest;
-use ironrdp_connector::{ClientConnector, ConnectionResult, ConnectorError, ConnectorResult, Credentials, ServerName};
+use ironrdp_connector::{
+    ClientConnector, ConnectionResult, ConnectorError, ConnectorResult, Credentials, ServerName,
+};
 use ironrdp_pdu::rdp::capability_sets::{client_codecs_capabilities, MajorPlatformType};
 use ironrdp_pdu::rdp::client_info::{PerformanceFlags, TimezoneInfo};
 use ironrdp_tls::TlsStream;
@@ -45,7 +47,11 @@ impl ironrdp_tokio::NetworkClient for NoNetworkClient {
     }
 }
 
-fn build_config(profile: &ConnectionProfile, username: &str, password: &str) -> ironrdp_connector::Config {
+fn build_config(
+    profile: &ConnectionProfile,
+    username: &str,
+    password: &str,
+) -> ironrdp_connector::Config {
     let bitmap = ironrdp_connector::BitmapConfig {
         color_depth: profile.color_depth,
         lossy_compression: true,
@@ -108,13 +114,20 @@ async fn confirm_certificate(
 ) -> Result<(), ConnectError> {
     use x509_cert::der::Encode as _;
 
-    let der = cert
-        .to_der()
-        .map_err(|e| ConnectError::Connector(ironrdp_connector::custom_err!("recodificar certificado do servidor", std::io::Error::other(e.to_string()))))?;
+    let der = cert.to_der().map_err(|e| {
+        ConnectError::Connector(ironrdp_connector::custom_err!(
+            "recodificar certificado do servidor",
+            std::io::Error::other(e.to_string())
+        ))
+    })?;
     let fingerprint = Fingerprint::of_der(&der);
 
-    let decision = known_hosts::check(address, &fingerprint)
-        .map_err(|e| ConnectError::Connector(ironrdp_connector::custom_err!("consultar known_hosts", std::io::Error::other(e.to_string()))))?;
+    let decision = known_hosts::check(address, &fingerprint).map_err(|e| {
+        ConnectError::Connector(ironrdp_connector::custom_err!(
+            "consultar known_hosts",
+            std::io::Error::other(e.to_string())
+        ))
+    })?;
 
     if decision == TrustDecision::Trusted {
         return Ok(());
@@ -135,8 +148,12 @@ async fn confirm_certificate(
         return Err(ConnectError::CertificateRejected);
     }
 
-    known_hosts::trust(address, &fingerprint)
-        .map_err(|e| ConnectError::Connector(ironrdp_connector::custom_err!("gravar known_hosts", std::io::Error::other(e.to_string()))))?;
+    known_hosts::trust(address, &fingerprint).map_err(|e| {
+        ConnectError::Connector(ironrdp_connector::custom_err!(
+            "gravar known_hosts",
+            std::io::Error::other(e.to_string())
+        ))
+    })?;
 
     Ok(())
 }
@@ -173,7 +190,9 @@ pub(crate) async fn connect(
         Framed::new_with_leftover(tls_stream, leftover);
 
     let server_public_key = ironrdp_tls::extract_tls_server_public_key(&tls_cert)
-        .ok_or_else(|| ironrdp_connector::general_err!("chave pública do servidor ausente no certificado TLS"))?
+        .ok_or_else(|| {
+            ironrdp_connector::general_err!("chave pública do servidor ausente no certificado TLS")
+        })?
         .to_owned();
 
     let connection_result = ironrdp_tokio::connect_finalize(

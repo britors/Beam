@@ -29,6 +29,7 @@ BuildRequires:  desktop-file-utils
 BuildRequires:  appstream-glib
 BuildRequires:  fdupes
 BuildRequires:  zstd
+BuildRequires:  gettext-tools
 
 %description
 Beam é o cliente RDP (Remote Desktop Protocol) do ecossistema Lyra OS, para
@@ -63,6 +64,10 @@ install -Dm0644 data/icons/org.lyraos.Beam.svg \
     %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/org.lyraos.Beam.svg
 install -Dm0644 data/icons/org.lyraos.Beam-symbolic.svg \
     %{buildroot}%{_datadir}/icons/hicolor/symbolic/apps/org.lyraos.Beam-symbolic.svg
+for locale in en_US pt_BR es_ES zh_CN; do
+    install -Dm0644 "beam-gtk/po/locale/${locale}/LC_MESSAGES/beam.mo" \
+        "%{buildroot}%{_datadir}/locale/${locale}/LC_MESSAGES/beam.mo"
+done
 
 desktop-file-validate %{buildroot}%{_datadir}/applications/org.lyraos.Beam.desktop
 appstream-util validate-relax --nonet \
@@ -72,6 +77,8 @@ appstream-util validate-relax --nonet \
 # GUI/network integration tests need a display and a real RDP server; only
 # the toolkit-agnostic beam-core unit tests run during package build.
 cargo test --offline -p beam-core
+cargo test --offline -p beam-gtk
+bash tests/test-i18n.sh
 
 %post
 %desktop_database_post
@@ -89,5 +96,9 @@ cargo test --offline -p beam-core
 %{_datadir}/metainfo/org.lyraos.Beam.metainfo.xml
 %{_datadir}/icons/hicolor/scalable/apps/org.lyraos.Beam.svg
 %{_datadir}/icons/hicolor/symbolic/apps/org.lyraos.Beam-symbolic.svg
+%lang(en) %{_datadir}/locale/en_US/LC_MESSAGES/beam.mo
+%lang(pt_BR) %{_datadir}/locale/pt_BR/LC_MESSAGES/beam.mo
+%lang(es) %{_datadir}/locale/es_ES/LC_MESSAGES/beam.mo
+%lang(zh_CN) %{_datadir}/locale/zh_CN/LC_MESSAGES/beam.mo
 
 %changelog
