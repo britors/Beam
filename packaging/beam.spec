@@ -30,6 +30,8 @@ BuildRequires:  appstream-glib
 BuildRequires:  fdupes
 BuildRequires:  zstd
 BuildRequires:  gettext-tools
+# The i18n test suite exercises every shipped locale during %%check.
+BuildRequires:  glibc-locale
 
 %description
 Beam é o cliente RDP (Remote Desktop Protocol) do ecossistema Lyra OS, para
