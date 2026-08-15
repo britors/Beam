@@ -1,8 +1,11 @@
 //! Connection profiles: persisted (password-less) connection settings.
 
-use std::fs;
-use std::io;
-use std::path::PathBuf;
+use std::fs::{self, OpenOptions};
+use std::io::{self, Write};
+use std::path::{Path, PathBuf};
+
+#[cfg(unix)]
+use std::os::unix::fs::OpenOptionsExt;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -97,9 +100,22 @@ impl ConnectionProfile {
         }
     }
 
-    /// `host:port`, used as the network destination and as the `known_hosts` key.
+    /// Hostname without the optional brackets accepted around an IPv6 literal.
+    pub fn normalized_host(&self) -> &str {
+        self.host
+            .strip_prefix('[')
+            .and_then(|host| host.strip_suffix(']'))
+            .unwrap_or(&self.host)
+    }
+
+    /// Canonical `host:port`, suitable for socket resolution and the `known_hosts` key.
     pub fn address(&self) -> String {
-        format!("{}:{}", self.host, self.port)
+        let host = self.normalized_host();
+        if host.contains(':') {
+            format!("[{host}]:{}", self.port)
+        } else {
+            format!("{host}:{}", self.port)
+        }
     }
 
     pub fn duplicate(&self, copy_suffix: &str) -> Self {
@@ -108,6 +124,50 @@ impl ConnectionProfile {
         copy.name = format!("{} ({copy_suffix})", self.name);
         copy
     }
+}
+
+/// Durably replace `path` without ever exposing a partially-written destination.
+pub(crate) fn atomic_write(path: &Path, contents: &[u8]) -> io::Result<()> {
+    atomic_write_impl(path, contents, true)
+}
+
+fn atomic_write_impl(path: &Path, contents: &[u8], preserve_old: bool) -> io::Result<()> {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    fs::create_dir_all(parent)?;
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("beam");
+    let temp = parent.join(format!(".{file_name}.{}.tmp", Uuid::new_v4()));
+    let result = (|| {
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        options.mode(0o600);
+        let mut file = options.open(&temp)?;
+        file.write_all(contents)?;
+        file.sync_all()?;
+        if preserve_old && path.exists() {
+            let backup = backup_path(path);
+            fs::copy(path, &backup)?;
+            fs::File::open(&backup)?.sync_all()?;
+        }
+        fs::rename(&temp, path)?;
+        fs::File::open(parent)?.sync_all()?;
+        Ok(())
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&temp);
+    }
+    result
+}
+
+pub(crate) fn restore_backup(path: &Path, contents: &[u8]) -> io::Result<()> {
+    atomic_write_impl(path, contents, false)
+}
+
+pub(crate) fn backup_path(path: &Path) -> PathBuf {
+    path.with_extension("toml.bak")
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -148,7 +208,20 @@ pub fn load_profiles() -> Result<Vec<ConnectionProfile>, ProfileError> {
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
         Err(source) => return Err(ProfileError::Io { path, source }),
     };
-    let store: ProfileStore = toml::from_str(&contents)?;
+    let store: ProfileStore = match toml::from_str(&contents) {
+        Ok(store) => store,
+        Err(primary_error) => match fs::read_to_string(backup_path(&path)) {
+            Ok(backup) => {
+                let store = toml::from_str(&backup).map_err(|_| primary_error)?;
+                restore_backup(&path, backup.as_bytes()).map_err(|source| ProfileError::Io {
+                    path: path.clone(),
+                    source,
+                })?;
+                store
+            }
+            Err(_) => return Err(primary_error.into()),
+        },
+    };
     Ok(store.profiles)
 }
 
@@ -165,7 +238,7 @@ pub fn save_profiles(profiles: &[ConnectionProfile]) -> Result<(), ProfileError>
         profiles: profiles.to_vec(),
     };
     let contents = toml::to_string_pretty(&store)?;
-    fs::write(&path, contents).map_err(|source| ProfileError::Io { path, source })
+    atomic_write(&path, contents.as_bytes()).map_err(|source| ProfileError::Io { path, source })
 }
 
 #[cfg(test)]
@@ -193,6 +266,14 @@ mod tests {
         let mut p = ConnectionProfile::new("S", "win.example.com", "u");
         p.port = 3390;
         assert_eq!(p.address(), "win.example.com:3390");
+    }
+
+    #[test]
+    fn address_canonicalizes_ipv6_literals() {
+        for host in ["2001:db8::1", "[2001:db8::1]", "::1", "fe80::1%eth0"] {
+            let p = ConnectionProfile::new("S", host, "u");
+            assert_eq!(p.address(), format!("[{}]:3389", p.normalized_host()));
+        }
     }
 
     #[test]
@@ -245,5 +326,38 @@ mod tests {
         assert_eq!(store.profiles.len(), 1);
         assert_eq!(store.profiles[0].port, 3389);
         assert_eq!(store.profiles[0].color_depth, 32);
+    }
+
+    #[test]
+    fn atomic_write_keeps_last_good_backup() {
+        let directory = std::env::temp_dir().join(format!("beam-atomic-{}", Uuid::new_v4()));
+        fs::create_dir(&directory).expect("create test directory");
+        let path = directory.join("connections.toml");
+        atomic_write(&path, b"first").expect("first write");
+        atomic_write(&path, b"second").expect("second write");
+        assert_eq!(fs::read(&path).expect("current"), b"second");
+        assert_eq!(
+            fs::read(path.with_extension("toml.bak")).expect("backup"),
+            b"first"
+        );
+        fs::remove_dir_all(directory).expect("remove test directory");
+    }
+
+    #[test]
+    fn restoring_backup_does_not_replace_it_with_corrupt_primary() {
+        let directory = std::env::temp_dir().join(format!("beam-recovery-{}", Uuid::new_v4()));
+        fs::create_dir(&directory).expect("create test directory");
+        let path = directory.join("connections.toml");
+        atomic_write(&path, b"valid = true").expect("initial write");
+        atomic_write(&path, b"new = true").expect("create backup");
+        fs::write(&path, b"invalid = [").expect("simulate partial file");
+        let backup = fs::read(backup_path(&path)).expect("read backup");
+        restore_backup(&path, &backup).expect("restore backup");
+        assert_eq!(fs::read(&path).expect("primary"), b"valid = true");
+        assert_eq!(
+            fs::read(backup_path(&path)).expect("backup"),
+            b"valid = true"
+        );
+        fs::remove_dir_all(directory).expect("remove test directory");
     }
 }

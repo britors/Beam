@@ -20,6 +20,7 @@ pub struct DirtyRect {
 struct Inner {
     width: u16,
     height: u16,
+    generation: u64,
     /// Tightly packed BGRA8888 pixels, `height` rows of `width * 4` bytes.
     data: Vec<u8>,
 }
@@ -35,6 +36,7 @@ impl Framebuffer {
             inner: Mutex::new(Inner {
                 width,
                 height,
+                generation: 0,
                 data: vec![0; usize::from(width) * usize::from(height) * 4],
             }),
         }
@@ -46,23 +48,69 @@ impl Framebuffer {
         inner.width = width;
         inner.height = height;
         inner.data = data;
+        inner.generation = inner.generation.wrapping_add(1);
     }
 
     /// Copy a fresh region from `src` (the session's live `DecodedImage` buffer, same
     /// dimensions) into our shared buffer.
-    pub(crate) fn update_from(&self, src: &[u8], width: u16, height: u16) {
+    /// Copy only `rect` from a same-sized BGRA source image.
+    pub fn update_region(&self, src: &[u8], width: u16, height: u16, rect: DirtyRect) {
         let mut inner = self.inner.lock().expect("framebuffer mutex poisoned");
         if inner.width != width || inner.height != height {
             inner.width = width;
             inner.height = height;
             inner.data.resize(src.len(), 0);
         }
-        inner.data.copy_from_slice(src);
+        let stride = usize::from(width) * 4;
+        let left = usize::from(rect.x) * 4;
+        let right = (usize::from(rect.x) + usize::from(rect.width)).min(usize::from(width)) * 4;
+        let bottom = (usize::from(rect.y) + usize::from(rect.height)).min(usize::from(height));
+        for row in usize::from(rect.y)..bottom {
+            let start = row * stride + left;
+            let end = row * stride + right;
+            if end <= src.len() && end <= inner.data.len() {
+                inner.data[start..end].copy_from_slice(&src[start..end]);
+            }
+        }
+        inner.generation = inner.generation.wrapping_add(1);
     }
 
     /// Take a snapshot of the current buffer for rendering. Returns `(width, height, bgra_bytes)`.
     pub fn snapshot(&self) -> (u16, u16, Vec<u8>) {
         let inner = self.inner.lock().expect("framebuffer mutex poisoned");
         (inner.width, inner.height, inner.data.clone())
+    }
+
+    /// Return cheap render metadata, allowing frontends to reuse an existing texture.
+    pub fn metadata(&self) -> (u16, u16, u64) {
+        let inner = self.inner.lock().expect("framebuffer mutex poisoned");
+        (inner.width, inner.height, inner.generation)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn update_region_only_copies_dirty_pixels() {
+        let framebuffer = Framebuffer::new(3, 2);
+        let source = vec![7; 3 * 2 * 4];
+        framebuffer.update_region(
+            &source,
+            3,
+            2,
+            DirtyRect {
+                x: 1,
+                y: 0,
+                width: 1,
+                height: 2,
+            },
+        );
+        let (_, _, data) = framebuffer.snapshot();
+        assert_eq!(&data[4..8], &[7; 4]);
+        assert_eq!(&data[16..20], &[7; 4]);
+        assert!(data[..4].iter().all(|byte| *byte == 0));
+        assert!(data[8..12].iter().all(|byte| *byte == 0));
     }
 }

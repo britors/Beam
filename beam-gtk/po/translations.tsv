@@ -1,4 +1,8 @@
 Settings	Configurações	Configuración	设置
+Close	Fechar	Cerrar	关闭
+Could not load trusted certificates	Não foi possível carregar os certificados confiáveis	No se pudieron cargar los certificados de confianza	无法加载受信任的证书
+Could not save connections	Não foi possível salvar as conexões	No se pudieron guardar las conexiones	无法保存连接
+{feature} unavailable: {detail}	{feature} indisponível: {detail}	{feature} no disponible: {detail}	{feature} 不可用：{detail}
 New connection	Nova conexão	Nueva conexión	新建连接
 About Beam	Sobre o Beam	Acerca de Beam	关于 Beam
 Main menu	Menu principal	Menú principal	主菜单

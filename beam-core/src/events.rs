@@ -60,6 +60,11 @@ pub enum SessionEvent {
     CredsNeeded(CredentialsPromptRequest),
     /// Text was copied to the remote clipboard and is now available locally.
     ClipboardTextReceived(String),
+    /// A recoverable optional channel failed and has been disabled/degraded.
+    FeatureUnavailable {
+        feature: &'static str,
+        detail: String,
+    },
     /// The session ended, gracefully or not.
     Disconnected(DisconnectReason),
 }

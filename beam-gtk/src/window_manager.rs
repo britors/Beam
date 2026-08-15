@@ -21,8 +21,11 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
         .default_height(640)
         .build();
 
-    let profiles: Rc<RefCell<Vec<ConnectionProfile>>> =
-        Rc::new(RefCell::new(profile::load_profiles().unwrap_or_default()));
+    let (loaded_profiles, load_error) = match profile::load_profiles() {
+        Ok(profiles) => (profiles, None),
+        Err(error) => (Vec::new(), Some(error.to_string())),
+    };
+    let profiles: Rc<RefCell<Vec<ConnectionProfile>>> = Rc::new(RefCell::new(loaded_profiles));
 
     let toolbar_view = adw::ToolbarView::new();
     let header = adw::HeaderBar::new();
@@ -116,8 +119,6 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
         list_store,
         #[weak]
         window,
-        #[strong]
-        runtime,
         move |_, list_item| {
             let list_item = list_item.downcast_ref::<gtk::ListItem>().expect("ListItem");
             let obj = list_item
@@ -169,12 +170,33 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
                                 profile_dialog::edit(&window, Some(current)).await
                             {
                                 let mut list = profiles.borrow_mut();
-                                if let Some(slot) = list.iter_mut().find(|p| p.id == updated.id) {
-                                    *slot = updated;
+                                let Some(position) = list.iter().position(|p| p.id == updated.id)
+                                else {
+                                    return;
+                                };
+                                let previous = list[position].clone();
+                                let mut saved = list.clone();
+                                saved[position] = updated;
+                                if let Err(error) = profile::save_profiles(&saved) {
+                                    tracing::error!(%error, "falha ao salvar edição de perfil");
+                                    show_error(&window, &error.to_string());
+                                    return;
                                 }
-                                let _ = profile::save_profiles(&list);
+                                let remove_old_credential = !same_credential(&previous, &saved[position])
+                                    && !saved.iter().any(|p| same_credential(p, &previous));
+                                *list = saved;
                                 drop(list);
                                 refresh_store(&profiles, &list_store);
+                                if remove_old_credential {
+                                    let key = beam_core::secrets::SecretKey {
+                                        host: previous.normalized_host(),
+                                        port: previous.port,
+                                        user: &previous.username,
+                                    };
+                                    if let Err(error) = beam_core::secrets::delete_password(&key).await {
+                                        tracing::warn!(%error, "falha ao remover credencial antiga");
+                                    }
+                                }
                             }
                         });
                     }
@@ -187,10 +209,17 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
                     list_store,
                     #[strong]
                     obj,
+                    #[weak]
+                    window,
                     move |_, _| {
                         let mut list = profiles.borrow_mut();
-                        list.push(obj.profile().duplicate(&gettext("copy")));
-                        let _ = profile::save_profiles(&list);
+                        let mut saved = list.clone();
+                        saved.push(obj.profile().duplicate(&gettext("copy")));
+                        if let Err(error) = profile::save_profiles(&saved) {
+                            show_error(&window, &error.to_string());
+                            return;
+                        }
+                        *list = saved;
                         drop(list);
                         refresh_store(&profiles, &list_store);
                     }
@@ -203,22 +232,39 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
                     list_store,
                     #[strong]
                     obj,
+                    #[weak]
+                    window,
                     move |_, _| {
                         let target = obj.profile();
-                        let target_for_secret = target.clone();
-                        glib::MainContext::default().spawn_local(async move {
-                            let key = beam_core::secrets::SecretKey {
-                                host: &target_for_secret.host,
-                                port: target_for_secret.port,
-                                user: &target_for_secret.username,
-                            };
-                            let _ = beam_core::secrets::delete_password(&key).await;
-                        });
                         let mut list = profiles.borrow_mut();
-                        list.retain(|p| p.id != target.id);
-                        let _ = profile::save_profiles(&list);
+                        let mut updated = list.clone();
+                        updated.retain(|p| p.id != target.id);
+                        if let Err(error) = profile::save_profiles(&updated) {
+                            tracing::error!(%error, "falha ao salvar exclusão de perfil");
+                            show_error(&window, &error.to_string());
+                            return;
+                        }
+                        let credential_still_used = updated.iter().any(|p| {
+                            p.normalized_host() == target.normalized_host()
+                                && p.port == target.port
+                                && p.username == target.username
+                        });
+                        *list = updated;
                         drop(list);
                         refresh_store(&profiles, &list_store);
+                        if !credential_still_used {
+                            glib::MainContext::default().spawn_local(async move {
+                                let key = beam_core::secrets::SecretKey {
+                                    host: target.normalized_host(),
+                                    port: target.port,
+                                    user: &target.username,
+                                };
+                                if let Err(error) = beam_core::secrets::delete_password(&key).await
+                                {
+                                    tracing::warn!(%error, "falha ao remover credencial sem uso");
+                                }
+                            });
+                        }
                     }
                 ));
                 actions.add_action(&edit_action);
@@ -226,31 +272,35 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
                 actions.add_action(&delete_action);
                 row.insert_action_group("row", Some(&actions));
             }
-
-            row.connect_activated(clone!(
-                #[weak]
-                window,
-                #[strong]
-                runtime,
-                #[strong]
-                obj,
-                move |_| {
-                    window_session::open(
-                        window
-                            .application()
-                            .and_downcast::<adw::Application>()
-                            .as_ref()
-                            .expect("app"),
-                        obj.profile(),
-                        runtime.clone(),
-                    );
-                }
-            ));
         }
     ));
 
     let list_view = gtk::ListView::new(Some(selection_model), Some(factory));
     list_view.set_single_click_activate(true);
+    list_view.connect_activate(clone!(
+        #[weak]
+        window,
+        #[strong]
+        runtime,
+        move |view, position| {
+            let Some(obj) = view
+                .model()
+                .and_then(|model| model.item(position))
+                .and_downcast::<ConnectionProfileObject>()
+            else {
+                return;
+            };
+            window_session::open(
+                window
+                    .application()
+                    .and_downcast::<adw::Application>()
+                    .as_ref()
+                    .expect("app"),
+                obj.profile(),
+                runtime.clone(),
+            );
+        }
+    ));
 
     let scroller = gtk::ScrolledWindow::builder()
         .child(&list_view)
@@ -297,8 +347,13 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
             glib::MainContext::default().spawn_local(async move {
                 if let Some(new_profile) = profile_dialog::edit(&window, None).await {
                     let mut list = profiles.borrow_mut();
-                    list.push(new_profile);
-                    let _ = profile::save_profiles(&list);
+                    let mut saved = list.clone();
+                    saved.push(new_profile);
+                    if let Err(error) = profile::save_profiles(&saved) {
+                        show_error(&window, &error.to_string());
+                        return;
+                    }
+                    *list = saved;
                     drop(list);
                     refresh_store(&profiles, &list_store);
                 }
@@ -307,6 +362,18 @@ pub fn build(app: &adw::Application, runtime: tokio::runtime::Handle) {
     ));
 
     window.present();
+    if let Some(error) = load_error {
+        show_error(&window, &error);
+    }
+}
+
+fn show_error(parent: &adw::ApplicationWindow, detail: &str) {
+    let dialog = adw::AlertDialog::builder()
+        .heading(gettext("Could not save connections"))
+        .body(detail)
+        .build();
+    dialog.add_response("close", &gettext("Close"));
+    dialog.present(Some(parent));
 }
 
 fn install_window_actions(window: &adw::ApplicationWindow) {
@@ -354,6 +421,10 @@ fn refresh_store(profiles: &Rc<RefCell<Vec<ConnectionProfile>>>, store: &gio::Li
     }
 }
 
+fn same_credential(a: &ConnectionProfile, b: &ConnectionProfile) -> bool {
+    a.normalized_host() == b.normalized_host() && a.port == b.port && a.username == b.username
+}
+
 glib::wrapper! {
     pub struct ConnectionProfileObject(ObjectSubclass<imp::ConnectionProfileObject>);
 }
@@ -393,4 +464,28 @@ mod imp {
     }
 
     impl ObjectImpl for ConnectionProfileObject {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::same_credential;
+    use beam_core::profile::ConnectionProfile;
+
+    #[test]
+    fn duplicated_profiles_share_the_same_credential_identity() {
+        let profile = ConnectionProfile::new("server", "[2001:db8::1]", "alice");
+        let duplicate = profile.duplicate("copy");
+        assert!(same_credential(&profile, &duplicate));
+    }
+
+    #[test]
+    fn editing_endpoint_or_user_changes_credential_identity() {
+        let profile = ConnectionProfile::new("server", "host", "alice");
+        let mut edited = profile.clone();
+        edited.username = "bob".into();
+        assert!(!same_credential(&profile, &edited));
+        edited.username = profile.username.clone();
+        edited.port += 1;
+        assert!(!same_credential(&profile, &edited));
+    }
 }

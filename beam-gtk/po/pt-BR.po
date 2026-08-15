@@ -185,3 +185,15 @@ msgstr "Conexão cancelada pelo usuário"
 
 msgid "Network error: {detail}"
 msgstr "Erro de rede: {detail}"
+
+msgid "Close"
+msgstr "Fechar"
+
+msgid "Could not load trusted certificates"
+msgstr "Não foi possível carregar os certificados confiáveis"
+
+msgid "Could not save connections"
+msgstr "Não foi possível salvar as conexões"
+
+msgid "{feature} unavailable: {detail}"
+msgstr "{feature} indisponível: {detail}"

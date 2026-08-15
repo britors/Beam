@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::profile::{config_dir, ProfileError};
+use crate::profile::{atomic_write, backup_path, config_dir, restore_backup, ProfileError};
 
 /// SHA-256 fingerprint of a DER-encoded certificate, formatted as lowercase colon-separated hex
 /// (e.g. `af:01:...`), matching the conventional display format for certificate fingerprints.
@@ -55,7 +55,20 @@ fn load_store() -> Result<KnownHostsStore, ProfileError> {
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(KnownHostsStore::default()),
         Err(source) => return Err(ProfileError::Io { path, source }),
     };
-    Ok(toml::from_str(&contents)?)
+    match toml::from_str(&contents) {
+        Ok(store) => Ok(store),
+        Err(primary_error) => match fs::read_to_string(backup_path(&path)) {
+            Ok(backup) => {
+                let store = toml::from_str(&backup).map_err(|_| primary_error)?;
+                restore_backup(&path, backup.as_bytes()).map_err(|source| ProfileError::Io {
+                    path: path.clone(),
+                    source,
+                })?;
+                Ok(store)
+            }
+            Err(_) => Err(primary_error.into()),
+        },
+    }
 }
 
 fn save_store(store: &KnownHostsStore) -> Result<(), ProfileError> {
@@ -67,7 +80,7 @@ fn save_store(store: &KnownHostsStore) -> Result<(), ProfileError> {
         })?;
     }
     let contents = toml::to_string_pretty(store)?;
-    fs::write(&path, contents).map_err(|source| ProfileError::Io { path, source })
+    atomic_write(&path, contents.as_bytes()).map_err(|source| ProfileError::Io { path, source })
 }
 
 /// Result of checking a certificate fingerprint against the known-hosts store.

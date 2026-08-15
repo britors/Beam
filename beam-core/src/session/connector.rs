@@ -10,7 +10,13 @@ use ironrdp_pdu::rdp::client_info::{PerformanceFlags, TimezoneInfo};
 use ironrdp_tls::TlsStream;
 use ironrdp_tokio::{Framed, TokioFramed};
 use tokio::net::TcpStream;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
+
+#[cfg(not(test))]
+const NETWORK_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
+#[cfg(test)]
+const NETWORK_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(100);
+const PROMPT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
 
 use crate::events::{CertPromptRequest, SessionEvent};
 use crate::known_hosts::{self, Fingerprint, TrustDecision};
@@ -32,6 +38,18 @@ pub enum ConnectError {
     CertificateRejected,
     #[error("conexão cancelada pelo usuário")]
     Cancelled,
+    #[error("tempo limite excedido durante {0}")]
+    Timeout(&'static str),
+}
+
+impl ConnectError {
+    pub(crate) fn is_authentication_rejected(&self) -> bool {
+        matches!(
+            self,
+            Self::Connector(error)
+                if matches!(error.kind(), ironrdp_connector::ConnectorErrorKind::AccessDenied)
+        )
+    }
 }
 
 /// A no-op [`ironrdp_tokio::NetworkClient`]: CredSSP only needs real network access for Kerberos
@@ -164,10 +182,15 @@ pub(crate) async fn connect(
     password: &str,
     cliprdr: ironrdp_cliprdr::Cliprdr<ironrdp_cliprdr::Client>,
     events: &mpsc::Sender<SessionEvent>,
+    mut cancelled: watch::Receiver<bool>,
 ) -> Result<Connected, ConnectError> {
     let address = profile.address();
 
-    let stream = TcpStream::connect(&address).await?;
+    let stream = tokio::select! {
+        result = tokio::time::timeout(NETWORK_TIMEOUT, TcpStream::connect(&address)) =>
+            result.map_err(|_| ConnectError::Timeout("conexão TCP"))??,
+        _ = cancelled.changed() => return Err(ConnectError::Cancelled),
+    };
     stream.set_nodelay(true)?;
     let client_addr = stream.local_addr()?;
 
@@ -177,12 +200,24 @@ pub(crate) async fn connect(
     let mut connector = ClientConnector::new(config, client_addr);
     connector.attach_static_channel(cliprdr);
 
-    let should_upgrade = ironrdp_tokio::connect_begin(&mut framed, &mut connector).await?;
+    let should_upgrade = tokio::select! {
+        result = tokio::time::timeout(NETWORK_TIMEOUT, ironrdp_tokio::connect_begin(&mut framed, &mut connector)) =>
+            result.map_err(|_| ConnectError::Timeout("negociação RDP inicial"))??,
+        _ = cancelled.changed() => return Err(ConnectError::Cancelled),
+    };
 
     let (initial_stream, leftover) = framed.into_inner();
-    let (tls_stream, tls_cert) = ironrdp_tls::upgrade(initial_stream, &profile.host).await?;
+    let (tls_stream, tls_cert) = tokio::select! {
+        result = tokio::time::timeout(NETWORK_TIMEOUT, ironrdp_tls::upgrade(initial_stream, profile.normalized_host())) =>
+            result.map_err(|_| ConnectError::Timeout("negociação TLS"))??,
+        _ = cancelled.changed() => return Err(ConnectError::Cancelled),
+    };
 
-    confirm_certificate(&address, &tls_cert, events).await?;
+    tokio::select! {
+        result = tokio::time::timeout(PROMPT_TIMEOUT, confirm_certificate(&address, &tls_cert, events)) =>
+            result.map_err(|_| ConnectError::Timeout("confirmação do certificado"))??,
+        _ = cancelled.changed() => return Err(ConnectError::Cancelled),
+    }
 
     let upgraded = ironrdp_tokio::mark_as_upgraded(should_upgrade, &mut connector);
 
@@ -195,19 +230,77 @@ pub(crate) async fn connect(
         })?
         .to_owned();
 
-    let connection_result = ironrdp_tokio::connect_finalize(
-        upgraded,
-        connector,
-        &mut framed,
-        &mut NoNetworkClient,
-        ServerName::new(&profile.host),
-        server_public_key,
-        None,
-    )
-    .await?;
+    let mut network_client = NoNetworkClient;
+    let connection_result = tokio::select! {
+        result = tokio::time::timeout(NETWORK_TIMEOUT, ironrdp_tokio::connect_finalize(
+            upgraded, connector, &mut framed, &mut network_client,
+            ServerName::new(profile.normalized_host()), server_public_key, None,
+        )) => result.map_err(|_| ConnectError::Timeout("autenticação RDP"))??,
+        _ = cancelled.changed() => return Err(ConnectError::Cancelled),
+    };
 
     Ok(Connected {
         connection_result,
         framed,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::*;
+    use crate::session::clipboard::{self, ClipboardBridge};
+
+    async fn silent_server_profile() -> ConnectionProfile {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind");
+        let address = listener.local_addr().expect("local address");
+        tokio::spawn(async move {
+            let (_stream, _) = listener.accept().await.expect("accept");
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        });
+        let mut profile = ConnectionProfile::new("silent", "127.0.0.1", "user");
+        profile.port = address.port();
+        profile
+    }
+
+    fn cliprdr() -> ironrdp_cliprdr::Cliprdr<ironrdp_cliprdr::Client> {
+        let (tx, _rx) = mpsc::unbounded_channel();
+        let backend = clipboard::build_backend(Arc::new(ClipboardBridge::default()), tx);
+        ironrdp_cliprdr::Cliprdr::new(backend)
+    }
+
+    #[tokio::test]
+    #[ignore = "requires loopback sockets"]
+    async fn silent_server_times_out_during_handshake() {
+        let profile = silent_server_profile().await;
+        let (events, _events_rx) = mpsc::channel(4);
+        let (_cancel, cancelled) = watch::channel(false);
+        let error = match connect(&profile, "user", "password", cliprdr(), &events, cancelled).await
+        {
+            Ok(_) => panic!("silent server must time out"),
+            Err(error) => error,
+        };
+        assert!(matches!(error, ConnectError::Timeout(_)));
+    }
+
+    #[tokio::test]
+    #[ignore = "requires loopback sockets"]
+    async fn cancellation_interrupts_pending_handshake() {
+        let profile = silent_server_profile().await;
+        let (events, _events_rx) = mpsc::channel(4);
+        let (cancel, cancelled) = watch::channel(false);
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            cancel.send_replace(true);
+        });
+        let error = match connect(&profile, "user", "password", cliprdr(), &events, cancelled).await
+        {
+            Ok(_) => panic!("handshake must be cancelled"),
+            Err(error) => error,
+        };
+        assert!(matches!(error, ConnectError::Cancelled));
+    }
 }

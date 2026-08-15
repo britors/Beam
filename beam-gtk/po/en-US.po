@@ -185,3 +185,15 @@ msgstr "Connection cancelled by the user"
 
 msgid "Network error: {detail}"
 msgstr "Network error: {detail}"
+
+msgid "Close"
+msgstr "Close"
+
+msgid "Could not load trusted certificates"
+msgstr "Could not load trusted certificates"
+
+msgid "Could not save connections"
+msgstr "Could not save connections"
+
+msgid "{feature} unavailable: {detail}"
+msgstr "{feature} unavailable: {detail}"

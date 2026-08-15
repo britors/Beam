@@ -39,7 +39,19 @@ fn refresh_known_hosts(group: &adw::PreferencesGroup, rows: &Rc<RefCell<Vec<gtk:
         group.remove(&widget);
     }
 
-    let hosts = beam_core::known_hosts::list().unwrap_or_default();
+    let hosts = match beam_core::known_hosts::list() {
+        Ok(hosts) => hosts,
+        Err(error) => {
+            let row = adw::ActionRow::builder()
+                .title(gettext("Could not load trusted certificates"))
+                .subtitle(error.to_string())
+                .sensitive(false)
+                .build();
+            group.add(&row);
+            rows.borrow_mut().push(row.upcast());
+            return;
+        }
+    };
     if hosts.is_empty() {
         let row = adw::ActionRow::builder()
             .title(gettext("No trusted certificates yet"))
@@ -66,9 +78,9 @@ fn refresh_known_hosts(group: &adw::PreferencesGroup, rows: &Rc<RefCell<Vec<gtk:
 
         let group_for_remove = group.clone();
         let rows_for_remove = rows.clone();
-        remove_btn.connect_clicked(move |_| {
-            let _ = beam_core::known_hosts::remove(&address);
-            refresh_known_hosts(&group_for_remove, &rows_for_remove);
+        remove_btn.connect_clicked(move |_| match beam_core::known_hosts::remove(&address) {
+            Ok(()) => refresh_known_hosts(&group_for_remove, &rows_for_remove),
+            Err(error) => tracing::error!(%error, "falha ao remover confiança TOFU"),
         });
 
         group.add(&row);

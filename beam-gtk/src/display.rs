@@ -21,6 +21,7 @@ mod imp {
     pub struct RemoteDisplay {
         pub framebuffer: RefCell<Option<Arc<Framebuffer>>>,
         pub dirty: Cell<bool>,
+        pub texture: RefCell<Option<(u64, gdk::MemoryTexture)>>,
     }
 
     #[glib::object_subclass]
@@ -69,19 +70,30 @@ mod imp {
             let Some(fb) = self.framebuffer.borrow().as_ref().cloned() else {
                 return;
             };
-            let (width, height, data) = fb.snapshot();
+            let (width, height, generation) = fb.metadata();
             if width == 0 || height == 0 {
                 return;
             }
-
-            let bytes = glib::Bytes::from_owned(data);
-            let texture = gdk::MemoryTexture::new(
-                i32::from(width),
-                i32::from(height),
-                gdk::MemoryFormat::B8g8r8a8,
-                &bytes,
-                usize::from(width) * 4,
-            );
+            let cached = self
+                .texture
+                .borrow()
+                .as_ref()
+                .and_then(|(cached_generation, texture)| {
+                    (generation == *cached_generation).then(|| texture.clone())
+                });
+            let texture = cached.unwrap_or_else(|| {
+                let (_, _, data) = fb.snapshot();
+                let bytes = glib::Bytes::from_owned(data);
+                let texture = gdk::MemoryTexture::new(
+                    i32::from(width),
+                    i32::from(height),
+                    gdk::MemoryFormat::B8g8r8a8,
+                    &bytes,
+                    usize::from(width) * 4,
+                );
+                *self.texture.borrow_mut() = Some((generation, texture.clone()));
+                texture
+            });
 
             // Scale to fit the widget while preserving the desktop's aspect ratio, centered.
             let scale = (widget_width / f32::from(width)).min(widget_height / f32::from(height));
@@ -121,6 +133,7 @@ impl RemoteDisplay {
 
     pub fn set_framebuffer(&self, framebuffer: Arc<Framebuffer>) {
         *self.imp().framebuffer.borrow_mut() = Some(framebuffer);
+        self.imp().texture.borrow_mut().take();
         self.mark_dirty();
         self.queue_resize();
     }

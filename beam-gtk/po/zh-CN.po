@@ -185,3 +185,15 @@ msgstr "用户取消了连接"
 
 msgid "Network error: {detail}"
 msgstr "网络错误：{detail}"
+
+msgid "Close"
+msgstr "关闭"
+
+msgid "Could not load trusted certificates"
+msgstr "无法加载受信任的证书"
+
+msgid "Could not save connections"
+msgstr "无法保存连接"
+
+msgid "{feature} unavailable: {detail}"
+msgstr "{feature} 不可用：{detail}"

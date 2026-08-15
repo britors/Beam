@@ -16,7 +16,8 @@ use ironrdp_session::{fast_path, ActiveStageBuilder, ActiveStageOutput, Graceful
 use ironrdp_tls::TlsStream;
 use ironrdp_tokio::{single_sequence_step_read, split_tokio_framed, Framed, FramedWrite as _};
 use tokio::net::TcpStream;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
+use tracing::{error, warn};
 
 use crate::events::{DisconnectReason, SessionEvent};
 use crate::session::clipboard::ClipboardBackendMsg;
@@ -37,7 +38,11 @@ pub(crate) async fn run(
     framed: Framed<ironrdp_tokio::TokioStream<TlsStream<TcpStream>>>,
     connection_result: ConnectionResult,
     events: mpsc::Sender<SessionEvent>,
-    mut commands: mpsc::UnboundedReceiver<SessionCommand>,
+    mut commands: mpsc::Receiver<SessionCommand>,
+    mut essential_commands: mpsc::Receiver<SessionCommand>,
+    mut pointer_position: watch::Receiver<Option<crate::session::InputEvent>>,
+    mut clipboard_generation: watch::Receiver<u64>,
+    mut cancelled: watch::Receiver<bool>,
     mut clipboard_backend_rx: mpsc::UnboundedReceiver<ClipboardBackendMsg>,
     framebuffer: Arc<Framebuffer>,
 ) {
@@ -76,6 +81,9 @@ pub(crate) async fn run(
 
     let disconnect_reason = 'outer: loop {
         let outputs = tokio::select! {
+            _ = cancelled.changed() => {
+                break 'outer GracefulDisconnectReason::UserInitiated;
+            }
             frame = reader.read_pdu() => {
                 let (action, payload) = match frame {
                     Ok(frame) => frame,
@@ -106,11 +114,6 @@ pub(crate) async fn run(
                         let fastpath_events = input::ctrl_alt_del_sequence();
                         process_input(&mut active_stage, &mut image, &fastpath_events)
                     }
-                    SessionCommand::LocalClipboardChanged => {
-                        with_cliprdr(&mut active_stage, |cliprdr| {
-                            cliprdr.initiate_copy(&[ClipboardFormat::new(ClipboardFormatId::CF_UNICODETEXT)])
-                        })
-                    }
                     SessionCommand::Disconnect => {
                         match active_stage.graceful_shutdown() {
                             Ok(outputs) => outputs,
@@ -119,21 +122,54 @@ pub(crate) async fn run(
                     }
                 }
             }
+            command = essential_commands.recv() => {
+                match command {
+                    Some(SessionCommand::Input(event)) => {
+                        let fastpath_events = input::to_fastpath(event);
+                        process_input(&mut active_stage, &mut image, &fastpath_events)
+                    }
+                    Some(SessionCommand::CtrlAltDel) => {
+                        let fastpath_events = input::ctrl_alt_del_sequence();
+                        process_input(&mut active_stage, &mut image, &fastpath_events)
+                    }
+                    _ => Vec::new(),
+                }
+            }
+            changed = clipboard_generation.changed() => {
+                if changed.is_err() {
+                    Vec::new()
+                } else {
+                    clipboard_generation.borrow_and_update();
+                    with_cliprdr(&mut active_stage, &events, |cliprdr| {
+                        cliprdr.initiate_copy(&[ClipboardFormat::new(ClipboardFormatId::CF_UNICODETEXT)])
+                    })
+                }
+            }
+            changed = pointer_position.changed() => {
+                if changed.is_err() {
+                    Vec::new()
+                } else if let Some(event) = *pointer_position.borrow_and_update() {
+                    let fastpath_events = input::to_fastpath(event);
+                    process_input(&mut active_stage, &mut image, &fastpath_events)
+                } else {
+                    Vec::new()
+                }
+            }
             clipboard_msg = clipboard_backend_rx.recv() => {
                 match clipboard_msg {
                     None => Vec::new(),
                     Some(ClipboardBackendMsg::InitiateCopy) => {
-                        with_cliprdr(&mut active_stage, |cliprdr| {
+                        with_cliprdr(&mut active_stage, &events, |cliprdr| {
                             cliprdr.initiate_copy(&[ClipboardFormat::new(ClipboardFormatId::CF_UNICODETEXT)])
                         })
                     }
                     Some(ClipboardBackendMsg::InitiatePaste) => {
-                        with_cliprdr(&mut active_stage, |cliprdr| {
+                        with_cliprdr(&mut active_stage, &events, |cliprdr| {
                             cliprdr.initiate_paste(ClipboardFormatId::CF_UNICODETEXT)
                         })
                     }
                     Some(ClipboardBackendMsg::SendFormatData(bytes)) => {
-                        with_cliprdr(&mut active_stage, |cliprdr| {
+                        with_cliprdr(&mut active_stage, &events, |cliprdr| {
                             cliprdr.submit_format_data(
                                 ironrdp_cliprdr::pdu::FormatDataResponse::new_data(bytes).into_owned(),
                             )
@@ -146,7 +182,7 @@ pub(crate) async fn run(
                 }
             }
             _ = cleanup_interval.tick() => {
-                with_cliprdr(&mut active_stage, |cliprdr| cliprdr.drive_timeouts())
+                with_cliprdr(&mut active_stage, &events, |cliprdr| cliprdr.drive_timeouts())
             }
         };
 
@@ -165,12 +201,9 @@ pub(crate) async fn run(
                     }
                 }
                 ActiveStageOutput::GraphicsUpdate(region) => {
-                    framebuffer.update_from(image.data(), image.width(), image.height());
-                    let _ = events
-                        .send(SessionEvent::FramebufferUpdated {
-                            rect: to_dirty_rect(&region),
-                        })
-                        .await;
+                    let dirty = to_dirty_rect(&region);
+                    framebuffer.update_region(image.data(), image.width(), image.height(), dirty);
+                    let _ = events.try_send(SessionEvent::FramebufferUpdated { rect: dirty });
                 }
                 ActiveStageOutput::PointerDefault
                 | ActiveStageOutput::PointerHidden
@@ -269,15 +302,20 @@ fn process_input(
     image: &mut DecodedImage,
     events: &[FastPathInputEvent],
 ) -> Vec<ActiveStageOutput> {
-    active_stage
-        .process_fastpath_input(image, events)
-        .unwrap_or_default()
+    match active_stage.process_fastpath_input(image, events) {
+        Ok(outputs) => outputs,
+        Err(error) => {
+            error!(error = %error.report(), "falha ao codificar entrada fast-path");
+            Vec::new()
+        }
+    }
 }
 
 /// Runs `f` against the active CLIPRDR processor, if the channel is available, flattening any
 /// PDU-encoding error into an empty output (logged, not fatal to the session).
 fn with_cliprdr(
     active_stage: &mut ironrdp_session::ActiveStage,
+    events: &mpsc::Sender<SessionEvent>,
     f: impl FnOnce(
         &mut CliprdrClient,
     ) -> ironrdp_pdu::PduResult<
@@ -285,13 +323,53 @@ fn with_cliprdr(
     >,
 ) -> Vec<ActiveStageOutput> {
     let Some(cliprdr) = active_stage.get_svc_processor_mut::<CliprdrClient>() else {
+        warn!("canal de clipboard indisponível");
+        notify_clipboard_failure(events, "canal CLIPRDR não foi negociado");
         return Vec::new();
     };
-    let Ok(messages) = f(cliprdr) else {
-        return Vec::new();
+    let messages = match f(cliprdr) {
+        Ok(messages) => messages,
+        Err(error) => {
+            error!(%error, "falha ao gerar mensagem CLIPRDR");
+            notify_clipboard_failure(events, &format!("falha ao gerar mensagem: {error}"));
+            return Vec::new();
+        }
     };
     match active_stage.process_svc_processor_messages(messages) {
         Ok(frame) if !frame.is_empty() => vec![ActiveStageOutput::ResponseFrame(frame)],
-        _ => Vec::new(),
+        Ok(_) => Vec::new(),
+        Err(error) => {
+            error!(error = %error.report(), "falha ao processar mensagem CLIPRDR");
+            notify_clipboard_failure(
+                events,
+                &format!("falha ao processar mensagem: {}", error.report()),
+            );
+            Vec::new()
+        }
+    }
+}
+
+fn notify_clipboard_failure(events: &mpsc::Sender<SessionEvent>, detail: &str) {
+    let _ = events.try_send(SessionEvent::FeatureUnavailable {
+        feature: "clipboard",
+        detail: detail.to_owned(),
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn clipboard_failure_emits_actionable_diagnostic_without_sensitive_content() {
+        let (events, mut receiver) = mpsc::channel(1);
+        notify_clipboard_failure(&events, "canal não negociado");
+        match receiver.recv().await {
+            Some(SessionEvent::FeatureUnavailable { feature, detail }) => {
+                assert_eq!(feature, "clipboard");
+                assert_eq!(detail, "canal não negociado");
+            }
+            other => panic!("unexpected event: {other:?}"),
+        }
     }
 }

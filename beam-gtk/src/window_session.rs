@@ -1,7 +1,7 @@
 //! The session window: full desktop view, floating auto-hiding header in fullscreen, and a
 //! reconnect banner when the connection drops.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use adw::prelude::*;
@@ -81,6 +81,32 @@ pub fn open(app: &adw::Application, profile: ConnectionProfile, runtime: tokio::
     window.set_content(Some(&content_box));
 
     let fullscreen = Rc::new(Cell::new(false));
+    window.connect_notify_local(
+        Some("fullscreened"),
+        clone!(
+            #[strong]
+            fullscreen,
+            #[weak]
+            fullscreen_btn,
+            #[weak]
+            header_revealer,
+            move |window, _| {
+                let active = window.is_fullscreen();
+                fullscreen.set(active);
+                fullscreen_btn.set_icon_name(if active {
+                    "view-restore-symbolic"
+                } else {
+                    "view-fullscreen-symbolic"
+                });
+                fullscreen_btn.set_tooltip_text(Some(&gettext(if active {
+                    "Leave fullscreen"
+                } else {
+                    "Fullscreen"
+                })));
+                header_revealer.set_reveal_child(!active);
+            }
+        ),
+    );
 
     // Reveal the floating header when the pointer nears the top edge in fullscreen mode; leave
     // it permanently revealed in windowed mode.
@@ -122,13 +148,10 @@ pub fn open(app: &adw::Application, profile: ConnectionProfile, runtime: tokio::
     let toggle_fullscreen = Rc::new(clone!(
         #[weak]
         window,
-        #[strong]
-        fullscreen,
         #[weak]
         header_revealer,
         move || {
-            let now_fullscreen = !fullscreen.get();
-            fullscreen.set(now_fullscreen);
+            let now_fullscreen = !window.is_fullscreen();
             if now_fullscreen {
                 window.fullscreen();
                 header_revealer.set_reveal_child(false);
@@ -191,6 +214,7 @@ pub fn open(app: &adw::Application, profile: ConnectionProfile, runtime: tokio::
     // Kick off the connection.
     let (controller, events) = session::connect(profile.clone(), &runtime);
     display.set_framebuffer(controller.framebuffer().clone());
+    let active_controller = Rc::new(RefCell::new(controller.clone()));
 
     input_gtk::attach(
         &display,
@@ -203,12 +227,12 @@ pub fn open(app: &adw::Application, profile: ConnectionProfile, runtime: tokio::
         ),
         clone!(
             #[strong]
-            controller,
+            active_controller,
             #[strong]
             captured,
             move |event| {
                 if captured.get() {
-                    controller.send_input(event);
+                    active_controller.borrow().send_input(event);
                 }
             }
         ),
@@ -216,22 +240,22 @@ pub fn open(app: &adw::Application, profile: ConnectionProfile, runtime: tokio::
 
     cad_btn.connect_clicked(clone!(
         #[strong]
-        controller,
-        move |_| controller.send_ctrl_alt_del()
+        active_controller,
+        move |_| active_controller.borrow().send_ctrl_alt_del()
     ));
     disconnect_btn.connect_clicked(clone!(
         #[strong]
-        controller,
-        move |_| controller.disconnect()
+        active_controller,
+        move |_| active_controller.borrow().disconnect()
     ));
 
     // Local → remote clipboard: forward text changes from the GTK clipboard.
     let clipboard = display.clipboard();
     clipboard.connect_changed(clone!(
         #[strong]
-        controller,
+        active_controller,
         move |clipboard| {
-            let controller = controller.clone();
+            let controller = active_controller.borrow().clone();
             let clipboard = clipboard.clone();
             glib::MainContext::default().spawn_local(async move {
                 if let Ok(Some(text)) = clipboard.read_text_future().await {
@@ -259,11 +283,14 @@ pub fn open(app: &adw::Application, profile: ConnectionProfile, runtime: tokio::
         display,
         #[weak]
         banner,
+        #[strong]
+        active_controller,
         move |_| {
             banner.set_revealed(false);
             let (controller, events) =
                 session::connect(profile_for_reconnect.clone(), &runtime_for_reconnect);
             display.set_framebuffer(controller.framebuffer().clone());
+            *active_controller.borrow_mut() = controller.clone();
             spawn_event_pump(
                 events,
                 controller,
@@ -275,7 +302,14 @@ pub fn open(app: &adw::Application, profile: ConnectionProfile, runtime: tokio::
     ));
 
     window.present();
+    if should_start_fullscreen(&profile) {
+        window.fullscreen();
+    }
     display.grab_focus();
+}
+
+fn should_start_fullscreen(profile: &ConnectionProfile) -> bool {
+    profile.fullscreen
 }
 
 fn spawn_event_pump(
@@ -311,6 +345,14 @@ fn spawn_event_pump(
                 }
                 beam_core::events::SessionEvent::ClipboardTextReceived(text) => {
                     display.clipboard().set_text(&text);
+                }
+                beam_core::events::SessionEvent::FeatureUnavailable { feature, detail } => {
+                    banner.set_title(
+                        &gettext("{feature} unavailable: {detail}")
+                            .replace("{feature}", feature)
+                            .replace("{detail}", &detail),
+                    );
+                    banner.set_revealed(true);
                 }
                 beam_core::events::SessionEvent::Disconnected(reason) => {
                     match reason {
@@ -352,5 +394,20 @@ fn localized_detail(detail: &str) -> String {
         _ if detail.starts_with("falha de rede: ") => gettext("Network error: {detail}")
             .replace("{detail}", detail.trim_start_matches("falha de rede: ")),
         _ => detail.to_owned(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_start_fullscreen;
+    use beam_core::profile::ConnectionProfile;
+
+    #[test]
+    fn initial_presentation_follows_profile() {
+        let mut profile = ConnectionProfile::new("test", "server", "user");
+        profile.fullscreen = false;
+        assert!(!should_start_fullscreen(&profile));
+        profile.fullscreen = true;
+        assert!(should_start_fullscreen(&profile));
     }
 }
