@@ -25,13 +25,25 @@ fn init_locale(locale: &str) {
         std::env::set_var("LANGUAGE", locale);
     };
     let local_catalogs = concat!(env!("CARGO_MANIFEST_DIR"), "/po");
-    if let Err(error) = TextDomain::new(DOMAIN)
+    match TextDomain::new(DOMAIN)
         .prepend(local_catalogs)
         .locale(locale)
         .locale_category(LocaleCategory::LcMessages)
         .init()
     {
-        eprintln!("i18n: using canonical English strings after catalog error: {error}");
+        Ok(Some(_)) => {}
+        Ok(None) => {
+            // Minimal build environments (including OBS workers) often do not
+            // generate every supported libc locale.  GNU gettext can still
+            // select our UTF-8 catalogs through LANGUAGE as long as the
+            // process is in an available, non-C message locale.
+            if gettextrs::setlocale(LocaleCategory::LcMessages, "C.UTF-8").is_none() {
+                eprintln!("i18n: requested locale is unavailable and C.UTF-8 fallback failed");
+            }
+        }
+        Err(error) => {
+            eprintln!("i18n: using canonical English strings after catalog error: {error}");
+        }
     }
 }
 
